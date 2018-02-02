@@ -110,8 +110,19 @@ class SSD(nn.Module):
         other, ext = os.path.splitext(base_file)
         if ext == '.pkl' or '.pth':
             print('Loading weights into state dict...')
-            self.load_state_dict(torch.load(base_file,
-                                 map_location=lambda storage, loc: storage))
+
+            state_dict = torch.load(base_file, map_location=lambda storage, loc: storage)
+            from collections import OrderedDict
+            new_state_dict = OrderedDict()
+            for k, v in state_dict.items():        
+                head = k[:7]
+                if head == 'module.':
+                    name = k[7:] # remove `module.`
+                else:
+                    name = k
+                new_state_dict[name] = v    
+            self.load_state_dict(new_state_dict)
+
             print('Finished!')
         else:
             print('Sorry only .pth and .pkl files supported.')
@@ -156,8 +167,14 @@ mbox = {
     'vgg16': [6, 6, 6, 6, 4, 4],  # number of boxes per feature map location
 }
 
-def build_ssd(net='vgg16', num_classes=21):
-    base_, extras_, head_ = multibox(vgg16(),
-                                     add_extras(extras[net], 1024),
-                                     mbox[net], num_classes)
+# def build_ssd(net, num_classes=21):
+#     base_, extras_, head_ = multibox(vgg16(),
+#                                      add_extras(extras[net], 1024),
+#                                      mbox[net], num_classes)
+#     return SSD(base_, extras_, head_, num_classes)
+
+def build_ssd(base, num_classes=21):
+    base_, extras_, head_ = multibox(base(),
+                                     add_extras(extras[base.name], 1024),
+                                     mbox[base.name], num_classes)
     return SSD(base_, extras_, head_, num_classes)

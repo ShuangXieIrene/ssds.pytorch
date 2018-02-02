@@ -3,12 +3,15 @@ import numpy as np
 
 import torch
 from torch.autograd import Variable
+import torch.backends.cudnn as cudnn
 
 from lib.layers import *
 from lib.utils.timer import Timer
 from lib.utils.nms_wrapper import nms
 from lib.utils.data_augment import BaseTransform
 
+from lib.nets import net_factory
+from lib.models import model_factory
 VOC_300 = {
     'feature_maps' : [38, 19, 10, 5, 3, 1],
 
@@ -28,7 +31,14 @@ VOC_300 = {
 }
 
 class ObjectDetector:
-    def __init__(self, net, detection=None, transform=None, num_classes = 21, cuda = False, max_per_image = 300, thresh = 0.5):
+    def __init__(self, net=None, detection=None, transform=None, num_classes = 21, cuda = False, max_per_image = 300, thresh = 0.5):
+        base_fn = net_factory.gen_base_fn(name='vgg16')
+        net = model_factory.gen_model_fn(name='ssd')(base = base_fn)
+        net.eval()
+        if cuda:
+            net = net.cuda()
+            cudnn.benchmark = True
+
         self.net = net
         self.priorbox = PriorBox(VOC_300)
         self.priors = Variable(self.priorbox.forward(), volatile=True)

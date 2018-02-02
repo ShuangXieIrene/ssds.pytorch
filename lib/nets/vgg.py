@@ -29,5 +29,6 @@ def vgg(cfg, i, batch_norm=False):
         nn.ReLU(inplace=True)]
     return layers
 
-def vgg16():
+def create_vgg16_base():
     return vgg(base['16'], 3)
+create_vgg16_base.name='vgg16'

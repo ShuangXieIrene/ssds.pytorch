@@ -32,26 +32,26 @@ VOC_CLASSES = (  # always index 0
     'sheep', 'sofa', 'train', 'tvmonitor')
 
 def run_benchmark():
-    net = build_ssd(net = 'vgg16')
-    state_dict = torch.load(args.trained_model)
-    from collections import OrderedDict
-    new_state_dict = OrderedDict()
-    for k, v in state_dict.items():        
-        head = k[:7]
-        if head == 'module.':
-            name = k[7:] # remove `module.`
-        else:
-            name = k
-        new_state_dict[name] = v
-    net.load_state_dict(new_state_dict)
-    net.eval()
+    # net = build_ssd(net = 'vgg16')
+    # state_dict = torch.load(args.trained_model)
+    # from collections import OrderedDict
+    # new_state_dict = OrderedDict()
+    # for k, v in state_dict.items():        
+    #     head = k[:7]
+    #     if head == 'module.':
+    #         name = k[7:] # remove `module.`
+    #     else:
+    #         name = k
+    #     new_state_dict[name] = v
+    # net.load_state_dict(new_state_dict)
+    # net.eval()
 
     # load data
-    if args.cuda:
-        net = net.cuda()
-        cudnn.benchmark = True
+    # if args.cuda:
+    #     net = net.cuda()
+    #     cudnn.benchmark = True
 
-    object_detector = ObjectDetector(net, cuda = args.cuda)
+    object_detector = ObjectDetector(cuda = args.cuda)
 
     image = np.random.random((300, 300, 3))
 
