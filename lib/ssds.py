@@ -12,35 +12,29 @@ from lib.utils.data_augment import BaseTransform
 
 from lib.nets import net_factory
 from lib.models import model_factory
-VOC_300 = {
-    'feature_maps' : [38, 19, 10, 5, 3, 1],
-
-    'min_dim' : 300,
-
-    'steps' : [8, 16, 32, 64, 100, 300],
-
-    'min_sizes' : [30, 60, 111, 162, 213, 264],
-
-    'max_sizes' : [60, 111, 162, 213, 264, 315],
-
-    'aspect_ratios' : [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]],
-
-    'variance' : [0.1, 0.2],
-
-    'clip' : True,
-}
+from lib.utils.config_parse import cfg
 
 class ObjectDetector:
-    def __init__(self, net=None, detection=None, transform=None, num_classes = 21, cuda = False, max_per_image = 300, thresh = 0.5):
-        base_fn = net_factory.gen_base_fn(name='vgg16')
-        net = model_factory.gen_model_fn(name='ssd')(base = base_fn)
+    def __init__(self, base_fn=None, model_fn=None, transform=None, prior_box=None,
+                resume_checkpoint=None, num_classes = 21, cuda = True, 
+                max_per_image = 300, thresh = 0.5):
+        if base_fn is None:
+            base_fn = cfg.MODEL.BASE_FN
+        base = net_factory.gen_base_fn(name=base_fn)
+        if model_fn is None:
+            model_fn = cfg.MODEL.MODEL_FN
+        net = model_factory.gen_model_fn(name=model_fn)(base=base)
+        if resume_checkpoint:
+            net.load_weights(resume_checkpoint)
         net.eval()
         if cuda:
             net = net.cuda()
             cudnn.benchmark = True
 
         self.net = net
-        self.priorbox = PriorBox(VOC_300)
+        if prior_box is None:
+            prior_box = cfg.MODEL.PRIOR_BOX
+        self.priorbox = PriorBox(prior_box)
         self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.detection = Detect(num_classes, 0, 200, 0.01, 0.45, self.priorbox.variance)
         self.transform = BaseTransform(300, (104, 117, 123), (2,0,1))

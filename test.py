@@ -15,43 +15,32 @@ from torch.autograd import Variable
 
 from lib.models.ssd import build_ssd
 from lib.ssds import ObjectDetector
+from lib.utils.config_parse import cfg_from_file
 
-parser = argparse.ArgumentParser(description='ssds.pytorch')
-parser.add_argument('--trained_model', default='./weights/SSD_vgg_VOC_epoches_270.pth',
-                    type=str, help='Trained state_dict file path to open')
-parser.add_argument('--cuda', default=True, type=bool,
-                    help='Use cuda to train model')
-args = parser.parse_args()
+def parse_args():
+    """
+    Parse input arguments
+    """
+    parser = argparse.ArgumentParser(description='Test a ssds.pytorch network')
+    parser.add_argument('--cfg', dest='confg_file',
+            help='optional config file', default=None, type=str)
+    parser.add_argument('--model', dest='resume_checkpoint',
+            default='./weights/SSD_vgg_VOC_epoches_270.pth',
+            help='the checkpoint used to resume weight',
+            type=str)
 
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
 
-VOC_CLASSES = (  # always index 0
-    'aeroplane', 'bicycle', 'bird', 'boat',
-    'bottle', 'bus', 'car', 'cat', 'chair',
-    'cow', 'diningtable', 'dog', 'horse',
-    'motorbike', 'person', 'pottedplant',
-    'sheep', 'sofa', 'train', 'tvmonitor')
+    args = parser.parse_args()
+    return args
 
 def run_benchmark():
-    # net = build_ssd(net = 'vgg16')
-    # state_dict = torch.load(args.trained_model)
-    # from collections import OrderedDict
-    # new_state_dict = OrderedDict()
-    # for k, v in state_dict.items():        
-    #     head = k[:7]
-    #     if head == 'module.':
-    #         name = k[7:] # remove `module.`
-    #     else:
-    #         name = k
-    #     new_state_dict[name] = v
-    # net.load_state_dict(new_state_dict)
-    # net.eval()
+    args = parse_args()
+    cfg_from_file(args.confg_file)
 
-    # load data
-    # if args.cuda:
-    #     net = net.cuda()
-    #     cudnn.benchmark = True
-
-    object_detector = ObjectDetector(cuda = args.cuda)
+    object_detector = ObjectDetector(resume_checkpoint=args.resume_checkpoint)
 
     image = np.random.random((300, 300, 3))
 

@@ -106,26 +106,14 @@ class SSD(nn.Module):
             )
         return output
 
-    def load_weights(self, base_file):
-        other, ext = os.path.splitext(base_file)
-        if ext == '.pkl' or '.pth':
-            print('Loading weights into state dict...')
-
-            state_dict = torch.load(base_file, map_location=lambda storage, loc: storage)
-            from collections import OrderedDict
-            new_state_dict = OrderedDict()
-            for k, v in state_dict.items():        
-                head = k[:7]
-                if head == 'module.':
-                    name = k[7:] # remove `module.`
-                else:
-                    name = k
-                new_state_dict[name] = v    
-            self.load_state_dict(new_state_dict)
-
-            print('Finished!')
+    def load_weights(self, resume_checkpoint):
+        if os.path.isfile(resume_checkpoint):
+            print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
+            checkpoint = torch.load(resume_checkpoint)
+            base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
+            self.load_state_dict(base_dict)
         else:
-            print('Sorry only .pth and .pkl files supported.')
+            print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
 
 def add_extras(cfg, i, batch_norm=False):
     # Extra layers added to VGG for feature scaling
