@@ -8,7 +8,7 @@ import torch.backends.cudnn as cudnn
 from lib.layers import *
 from lib.utils.timer import Timer
 from lib.utils.nms_wrapper import nms
-from lib.utils.data_augment import BaseTransform
+from lib.dataset.data_augment import BaseTransform
 
 from lib.nets import net_factory
 from lib.models import model_factory

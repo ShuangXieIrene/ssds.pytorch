@@ -1,4 +1,5 @@
 .vscode/
 weights/
+data/
 __pycache__
 *.pyc

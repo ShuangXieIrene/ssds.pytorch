@@ -27,7 +27,10 @@ __C.TRAIN.MOMENTUM = 0.9
 __C.TRAIN.WEIGHT_DECAY = 0.0001
 
 # Factor for reducing the learning rate
-__C.TRAIN.GAMMA = 0.1
+__C.TRAIN.GAMMA = 0.98
+
+# Step size for reducing the learning rate
+__C.TRAIN.STEPSIZE = 1
 
 # Iteration intervals for showing the loss during training, on command line interface
 __C.TRAIN.DISPLAY = 100
@@ -35,8 +38,13 @@ __C.TRAIN.DISPLAY = 100
 # Whether to initialize the weights with truncated normal distribution 
 __C.TRAIN.TRUNCATED = False
 
-# The number of snapshots kept, older ones are deleted to save space
-__C.TRAIN.SNAPSHOT_KEPT = 3
+# The number of checkpoints kept, older ones are deleted to save space
+__C.TRAIN.CHECKPOINTS_KEPT = 10
+__C.TRAIN.CHECKPOINTS_ITERS = 5000
+__C.TRAIN.CHECKPOINTS_EPOCHS = 5
+
+# The number of max iters
+__C.TRAIN.MAX_EPOCHS = 5
 
 # The time interval for saving tensorflow summaries
 __C.TRAIN.SUMMARY_INTERVAL = 180
@@ -107,10 +115,15 @@ __C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
 
 # Data directory
+__C.DATASET_FN = 'voc'
 __C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))
+__C.TRAIN_SETS = [('2012', 'train')]
 
-# Place outputs under an experiments directory
-__C.EXP_DIR = 'default'
+# Place outputs model under an experiments directory
+__C.EXP_DIR = './experiments/models/'
+
+# Place outputs tensorboard log under an experiments directory
+__C.LOG_DIR = './experiments/logs/'
 
 def _merge_a_into_b(a, b):
   """Merge config dictionary a into config dictionary b, clobbering the
