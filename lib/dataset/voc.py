@@ -16,13 +16,12 @@ import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
-# from .voc_eval import voc_eval
+#from .voc_eval import voc_eval
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
     import xml.etree.ElementTree as ET
 
-# from lib.dataset.data_augment import *
 
 VOC_CLASSES = ( '__background__', # always index 0
     'aeroplane', 'bicycle', 'bird', 'boat',
@@ -338,30 +337,6 @@ class VOCDetection(data.Dataset):
             cv2.rectangle(img, (obj[0], obj[1]), (obj[2], obj[3]), (255,0,0), 3)
         cv2.imwrite('./image.jpg', img)
 
-
-def detection_collate(batch):
-    """Custom collate fn for dealing with batches of images that have a different
-    number of associated object annotations (bounding boxes).
-
-    Arguments:
-        batch: (tuple) A tuple of tensor images and lists of annotations
-
-    Return:
-        A tuple containing:
-            1) (tensor) batch of images stacked on their 0 dim
-            2) (list of tensors) annotations for a given image are stacked on 0 dim
-    """
-    targets = []
-    imgs = []
-    for _, sample in enumerate(batch):
-        for _, tup in enumerate(sample):
-            if torch.is_tensor(tup):
-                imgs.append(tup)
-            elif isinstance(tup, type(np.empty(0))):
-                annos = torch.from_numpy(tup).float()
-                targets.append(annos)
-
-    return (torch.stack(imgs, 0), targets)
 
 
 ## test

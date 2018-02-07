@@ -114,10 +114,19 @@ __C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 # Root directory of project
 __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
 
+# image size for ssd
+__C.IMG_SIZE = [300, 300]
+
+# image size for ssd
+__C.RGB_MEAN = (103.94, 116.78, 123.68)
+
+# image expand probability
+__C.PROB = 0.6
+
 # Data directory
 __C.DATASET_FN = 'voc'
 __C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))
-__C.TRAIN_SETS = [('2012', 'train')]
+__C.TRAIN_SETS = [('2012', 'trainval')]
 
 # Place outputs model under an experiments directory
 __C.EXP_DIR = './experiments/models/'

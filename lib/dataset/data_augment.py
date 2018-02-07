@@ -110,7 +110,7 @@ def _distort(image):
     return image
 
 
-def _expand(image, boxes,fill, p):
+def _expand(image, boxes, fill, p):
     if random.random() > p:
         return image, boxes
 
@@ -158,7 +158,7 @@ def _mirror(image, boxes):
 def preproc_for_test(image, insize, mean):
     interp_methods = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_NEAREST, cv2.INTER_LANCZOS4]
     interp_method = interp_methods[random.randrange(5)]
-    image = cv2.resize(image, (insize, insize),interpolation=interp_method)
+    image = cv2.resize(image, (insize[0], insize[1]),interpolation=interp_method)
     image = image.astype(np.float32)
     image -= mean
     return image.transpose(2, 0, 1)
@@ -172,6 +172,7 @@ class preproc(object):
         self.p = p
 
     def __call__(self, image, targets):
+        print(targets)
         boxes = targets[:,:-1].copy()
         labels = targets[:,-1].copy()
         if len(boxes) == 0:
