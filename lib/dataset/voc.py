@@ -1,11 +1,3 @@
-"""VOC Dataset Classes
-
-Original author: Francisco Massa
-https://github.com/fmassa/vision/blob/voc_dataset/torchvision/datasets/voc.py
-
-Updated by: Ellis Brown, Max deGroot
-"""
-
 import os
 import pickle
 import os.path
@@ -16,7 +8,7 @@ import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
-#from .voc_eval import voc_eval
+# from .voc_eval import voc_eval
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:
@@ -157,7 +149,7 @@ class VOCDetection(data.Dataset):
             (default: 'VOC2007')
     """
 
-    def __init__(self, root, image_sets, preproc=None, target_transform=None,
+    def __init__(self, root, image_sets, preproc=None, target_transform=AnnotationTransform(),
                  dataset_name='VOC0712'):
         self.root = root
         self.image_set = image_sets
@@ -336,6 +328,7 @@ class VOCDetection(data.Dataset):
             obj = obj.astype(np.int)
             cv2.rectangle(img, (obj[0], obj[1]), (obj[2], obj[3]), (255,0,0), 3)
         cv2.imwrite('./image.jpg', img)
+
 
 
 

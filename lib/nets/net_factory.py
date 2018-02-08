@@ -1,7 +1,16 @@
 from lib.nets import vgg
+from lib.nets import mobilenet
 
 networks_map = {
-                    'vgg16': vgg.create_vgg16_base,
+                    'vgg16': vgg.vgg16,
+                    'mobilenet_v1': mobilenet.mobilenet_v1,
+                    'mobilenet_v1_075': mobilenet.mobilenet_v1_075,
+                    'mobilenet_v1_050': mobilenet.mobilenet_v1_050,
+                    'mobilenet_v1_025': mobilenet.mobilenet_v1_025,
+                    'mobilenet_v2': mobilenet.mobilenet_v2,
+                    'mobilenet_v2_075': mobilenet.mobilenet_v2_075,
+                    'mobilenet_v2_050': mobilenet.mobilenet_v2_050,
+                    'mobilenet_v2_025': mobilenet.mobilenet_v2_025,
                }
 
 def gen_base_fn(name):

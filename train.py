@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('--cfg', dest='confg_file',
             help='optional config file', default=None, type=str)
     parser.add_argument('--model', dest='resume_checkpoint',
-            default='./weights/SSD_vgg_VOC_epoches_270.pth',
+            default=None,
             help='the checkpoint used to resume weight',
             type=str)
 

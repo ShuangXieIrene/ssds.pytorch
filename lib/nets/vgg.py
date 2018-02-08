@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 base = {
-    '16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
+    'vgg16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'C', 512, 512, 512, 'M',
             512, 512, 512],
 }
 
@@ -29,6 +29,6 @@ def vgg(cfg, i, batch_norm=False):
         nn.ReLU(inplace=True)]
     return layers
 
-def create_vgg16_base():
-    return vgg(base['16'], 3)
-create_vgg16_base.name='vgg16'
+def vgg16():
+    return vgg(base['vgg16'], 3)
+vgg16.name='vgg16'

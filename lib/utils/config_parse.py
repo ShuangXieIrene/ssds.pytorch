@@ -106,6 +106,10 @@ __C.MODEL.PRIOR_BOX.VARIANCE = [0.1, 0.2]
 
 __C.MODEL.PRIOR_BOX.CLIP = True
 
+__C.MODEL.FEATURE_LAYER = [22, 34, 'S', 'S', '', '']
+__C.MODEL.LAYER_DEPTH = [-1, -1, 512, 256, 256, 256]
+__C.MODEL.MBOX = [6, 6, 6, 6, 4, 4]
+
 #
 # MISC
 #
@@ -133,6 +137,7 @@ __C.EXP_DIR = './experiments/models/'
 
 # Place outputs tensorboard log under an experiments directory
 __C.LOG_DIR = './experiments/logs/'
+__C.RESUME_CHECKPOINT = ''
 
 def _merge_a_into_b(a, b):
   """Merge config dictionary a into config dictionary b, clobbering the

@@ -172,7 +172,6 @@ class preproc(object):
         self.p = p
 
     def __call__(self, image, targets):
-        print(targets)
         boxes = targets[:,:-1].copy()
         labels = targets[:,-1].copy()
         if len(boxes) == 0:

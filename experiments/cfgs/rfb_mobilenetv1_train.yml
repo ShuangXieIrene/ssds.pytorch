@@ -1,11 +1,11 @@
 MODEL:
-  BASE_FN: vgg16
-  MODEL_FN: ssd
-  FEATURE_LAYER: [22, 34, 'S', 'S', '', '']
-  LAYER_DEPTH: [512, 1024, 512, 256, 256, 256]
+  BASE_FN: mobilenet_v1
+  MODEL_FN: rfb
+  FEATURE_LAYER: [11, 13, 'RBF_lite', 'S', 'S', 'S']
+  LAYER_DEPTH: [512, 1024, 512, 256, 256, 128]
   MBOX: [6, 6, 6, 6, 4, 4]
   PRIOR_BOX:
-    FEATURE_MAPS: [38, 19, 10, 5, 3, 1]
+    FEATURE_MAPS: [19, 10, 5, 3, 2, 1]
     MIN_DIM: 300
     STEPS: [8, 16, 32, 64, 100, 300]
     MIN_SIZES: [30, 60, 111, 162, 213, 264]
@@ -26,5 +26,4 @@ TRAIN:
 
 IMG_SIZE: [300, 300]
 DATA_DIR: './data/VOCdevkit'
-EXP_DIR: './experiments/models/vgg'
-RESUME_CHECKPOINT: './weights/SSD_vgg_VOC_epoches_270.pth'
+EXP_DIR: './experiments/models/rfb_mobilenet_v1'

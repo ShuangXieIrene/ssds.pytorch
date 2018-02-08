@@ -6,7 +6,6 @@ from torch.autograd import Variable
 import os
 
 from lib.layers import *
-from lib.nets.vgg import *
 
 class SSD(nn.Module):
     """Single Shot Multibox Architecture
@@ -25,21 +24,21 @@ class SSD(nn.Module):
         head: "multibox head" consists of loc and conf conv layers
     """
 
-    def __init__(self, base, extras, head, num_classes):
+    def __init__(self, base, extras, head, feature_layer, num_classes):
         super(SSD, self).__init__()
         self.num_classes = num_classes
-
-        # self.priorbox = PriorBox(v2)
-        # self.priors = Variable(self.priorbox.forward(), volatile=True)
-
         # SSD network
         self.base = nn.ModuleList(base)
+        self.extras = nn.ModuleList(extras)
+        self.feature_layer = feature_layer
+        # print(self.base)
         # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512, 20)
-        self.extras = nn.ModuleList(extras)
+        # print(self.extras)
 
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
+        # print(self.loc)
 
         self.softmax = nn.Softmax()
 
@@ -66,16 +65,15 @@ class SSD(nn.Module):
         loc = list()
         conf = list()
 
-        # apply vgg up to conv4_3 relu
-        for k in range(23):
+        # apply bases layers and cache source layer outputs
+        for k in range(len(self.base)):
             x = self.base[k](x)
-        s = self.L2Norm(x)
-        sources.append(s)
-
-        # apply vgg up to fc7
-        for k in range(23, len(self.base)):
-            x = self.base[k](x)
-        sources.append(x)
+            if k in self.feature_layer:
+                if len(sources) == 0:
+                    s = self.L2Norm(x)
+                    sources.append(s)
+                else:
+                    sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
@@ -87,11 +85,9 @@ class SSD(nn.Module):
         for (x, l, c) in zip(sources, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
+        # print([o.size() for o in loc])
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
-
-        # for op in self.net:
-        #     x = op(x)
 
         if is_train == False:
             output = (
@@ -110,59 +106,42 @@ class SSD(nn.Module):
         if os.path.isfile(resume_checkpoint):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
-            base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
-            self.load_state_dict(base_dict)
+            if 'module.' in list(checkpoint.items())[0][0]: 
+                base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
+                self.load_state_dict(base_dict)
+            else:
+                self.load_state_dict(checkpoint)
         else:
             print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
 
-def add_extras(cfg, i, batch_norm=False):
-    # Extra layers added to VGG for feature scaling
-    layers = []
-    in_channels = i
-    flag = False
-    for k, v in enumerate(cfg):
-        if in_channels != 'S':
-            if v == 'S':
-                layers += [nn.Conv2d(in_channels, cfg[k + 1],
-                           kernel_size=(1, 3)[flag], stride=2, padding=1)]
-            else:
-                layers += [nn.Conv2d(in_channels, v, kernel_size=(1, 3)[flag])]
-            flag = not flag
-        in_channels = v
-    return layers
-
-
-def multibox(vgg, extra_layers, cfg, num_classes):
+def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
+    extra_layers = []
     loc_layers = []
     conf_layers = []
-    vgg_source = [24, -2]
-    for k, v in enumerate(vgg_source):
-        loc_layers += [nn.Conv2d(vgg[v].out_channels,
-                                 cfg[k] * 4, kernel_size=3, padding=1)]
-        conf_layers += [nn.Conv2d(vgg[v].out_channels,
-                        cfg[k] * num_classes, kernel_size=3, padding=1)]
-    for k, v in enumerate(extra_layers[1::2], 2):
-        loc_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                 * 4, kernel_size=3, padding=1)]
-        conf_layers += [nn.Conv2d(v.out_channels, cfg[k]
-                                  * num_classes, kernel_size=3, padding=1)]
-    return vgg, extra_layers, (loc_layers, conf_layers)
+    in_channels = None
+    for layer, depth, box in zip(feature_layer, layer_depth, mbox):
+        if layer == 'S':
+            extra_layers += [
+                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+            in_channels = depth
+        elif layer == '':
+            extra_layers += [
+                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+            in_channels = depth
+        else:
+            in_channels = depth
+            # for i in range(layer):
+            #     if hasattr(base[layer], 'out_channels'):
+            #         in_channels = base[layer].out_channels
+            #         break
+            #     else:
+            #         layer -= 1
+        loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
+        conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
+    return base, extra_layers, (loc_layers, conf_layers)
 
-extras = {
-    'vgg16': [256, 'S', 512, 128, 'S', 256, 128, 256, 128, 256],
-}
-mbox = {
-    'vgg16': [6, 6, 6, 6, 4, 4],  # number of boxes per feature map location
-}
-
-# def build_ssd(net, num_classes=21):
-#     base_, extras_, head_ = multibox(vgg16(),
-#                                      add_extras(extras[net], 1024),
-#                                      mbox[net], num_classes)
-#     return SSD(base_, extras_, head_, num_classes)
-
-def build_ssd(base, num_classes=21):
-    base_, extras_, head_ = multibox(base(),
-                                     add_extras(extras[base.name], 1024),
-                                     mbox[base.name], num_classes)
-    return SSD(base_, extras_, head_, num_classes)
+def build_ssd(base, feature_layer, layer_depth, mbox, num_classes):
+    base_, extras_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
+    return SSD(base_, extras_, head_, feature_layer, num_classes)

@@ -23,15 +23,17 @@ class ObjectDetector:
         base = net_factory.gen_base_fn(name=base_fn)
         if model_fn is None:
             model_fn = cfg.MODEL.MODEL_FN
-        net = model_factory.gen_model_fn(name=model_fn)(base=base)
-        if resume_checkpoint:
-            net.load_weights(resume_checkpoint)
-        net.eval()
+        self.net = model_factory.gen_model_fn(name=model_fn)(base=base, 
+                    feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=cfg.MODEL.MBOX, num_classes=21)
+        if resume_checkpoint is None:
+            resume_checkpoint=cfg.RESUME_CHECKPOINT
+        if resume_checkpoint != '':
+            self.net.load_weights(resume_checkpoint)
+        self.net.eval()
         if cuda:
-            net = net.cuda()
+            self.net = self.net.cuda()
             cudnn.benchmark = True
 
-        self.net = net
         if prior_box is None:
             prior_box = cfg.MODEL.PRIOR_BOX
         self.priorbox = PriorBox(prior_box)
@@ -74,7 +76,7 @@ class ObjectDetector:
                 continue
             c_bboxes = boxes[inds]
             c_scores = scores[inds, j]
-            print(scores[:,j])
+            # print(scores[:,j])
             c_dets = np.hstack((c_bboxes, c_scores[:, np.newaxis])).astype(
                 np.float32, copy=False)
             keep = nms(c_dets, 0.45)

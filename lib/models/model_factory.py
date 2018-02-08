@@ -1,7 +1,9 @@
 from lib.models import ssd
+from lib.models import rfb
 
 models_map = {
                 'ssd': ssd.build_ssd,
+                'rfb': rfb.build_rfb
             }
 
 def gen_model_fn(name):

@@ -9,6 +9,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import torch.utils.data as data
+import torch.nn.init as init
 
 from lib.layers import *
 from lib.utils.timer import Timer
@@ -28,10 +29,11 @@ class SolverWrapper(object):
     def __init__(self, base_fn=None, model_fn=None, dataset_fn=None, max_epochs=None, output_dir=None, tbdir=None, resume_checkpoint=None, gpus = None, prior_box=None):
         if base_fn is None:
             base_fn = cfg.MODEL.BASE_FN
-        self.base = net_factory.gen_base_fn(name=base_fn)
+        base = net_factory.gen_base_fn(name=base_fn)
         if model_fn is None:
             model_fn = cfg.MODEL.MODEL_FN
-        self.net = model_factory.gen_model_fn(name=model_fn)(base=self.base)
+        self.net = model_factory.gen_model_fn(name=model_fn)(base=base, 
+                    feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=cfg.MODEL.MBOX, num_classes=21)
         if dataset_fn is None:
             dataset_fn = cfg.DATASET_FN
             self.dataset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.IMG_SIZE, cfg.RGB_MEAN, cfg.PROB))
@@ -45,6 +47,8 @@ class SolverWrapper(object):
             tbdir = cfg.LOG_DIR
         self.tbdir = tbdir
         self.tbvaldir = tbdir + '_val'
+        if resume_checkpoint is None:
+            resume_checkpoint=cfg.RESUME_CHECKPOINT
         self.resume_checkpoint = resume_checkpoint
         self.checkpoint_prefix = '{}_{}'.format(base_fn, model_fn)
         self.gpus = gpus
@@ -56,51 +60,62 @@ class SolverWrapper(object):
     def save_checkpoints(self, epochs, iters=None):
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-        if iters is None:
+        if iters:
             filename = self.checkpoint_prefix + '_epoch_{:d}_iter_{:d}'.format(epochs, iters) + '.pth'
         else:
             filename = self.checkpoint_prefix + '_epoch_{:d}'.format(epochs) + '.pth'
         filename = os.path.join(self.output_dir, filename)
         torch.save(self.net.state_dict(), filename)
-        print('Wrote snapshot to: {:s}'.format(filename))
-
-        # TODO: add checkpoints list
-        # TODO: write relative cfg filename
+        with open(os.path.join(self.output_dir, 'checkpoint_list.txt'), 'a') as f:
+            f.write('epoch {epoch:d}: {filename}\n'.format(epoch=epochs, filename=filename))
+        print('\nWrote snapshot to: {:s}'.format(filename))
+        
+        # TODO: write relative cfg under the same page
     
     def restore_checkpoint(self, resume_checkpoint):
-        if resume_checkpoint is None:
+        if resume_checkpoint == '':
             return False
         print('Restoring checkpoint from {:s}'.format(resume_checkpoint))
         return self.net.load_weights(resume_checkpoint)
 
     def find_previous(self):
-        import glob
-        files = os.path.join(self.output_dir, '*.pth')
-        files = glob.glob(files)
-        # TODO: use checkpoint list to find previous
-        if len(files) == 0:
+        if not os.path.exists(os.path.join(self.output_dir, 'checkpoint_list.txt')):
             return False
-        files.sort(key=os.path.getmtime)
-        return files[-1]
+        with open(os.path.join(self.output_dir, 'checkpoint_list.txt'), 'r') as f:
+            lineList = f.readlines()
+        line = lineList[-1]
+        start_epoch = int(line[line.find('epoch ') + len('epoch '): line.find(':')])
+        resume_checkpoint = line[line.find(':') + 2:-1]
+        return start_epoch, resume_checkpoint
+
+    def weights_init(self, m):
+        for key in m.state_dict():
+            if key.split('.')[-1] == 'weight':
+                if 'conv' in key:
+                    init.kaiming_normal(m.state_dict()[key], mode='fan_out')
+                if 'bn' in key:
+                    m.state_dict()[key][...] = 1
+            elif key.split('.')[-1] == 'bias':
+                m.state_dict()[key][...] = 0
 
     def initialize(self):
         # Fresh train directly from ImageNet weights
-        if self.resume_checkpoint is not None:
+        if self.resume_checkpoint:
             print('Loading initial model weights from {:s}'.format(self.resume_checkpoint))
             self.restore_checkpoint(self.resume_checkpoint)        
-        # Need to fix the variables before loading, so that the RGB weights are changed to BGR
-        # For VGG16 it also changes the convolutional weights fc6 and fc7 to
-        # fully connected weights
-
+        else:
         # TODO: ADD INIT ways
-
-        iter = 0
-        return iter
+            self.net.extras.apply(self.weights_init)
+            self.net.loc.apply(self.weights_init)
+            self.net.conf.apply(self.weights_init)
+        start_epoch = 0
+        return start_epoch
 
     def train_model(self):
         previous = self.find_previous()
         if previous:
-            start_epoch = self.restore_checkpoint(previous)
+            start_epoch = previous[0]
+            self.restore_checkpoint(previous[1])
         else:
             start_epoch = self.initialize()
         
@@ -123,7 +138,8 @@ class SolverWrapper(object):
         # get dataset size
         epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
         data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
-                                  shuffle=True, collate_fn=dataset_factory.detection_collate) #, pin_memory=True)
+                                  shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+        _t = Timer()
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
             exp_lr_scheduler.step(epoch)
@@ -133,7 +149,6 @@ class SolverWrapper(object):
             conf_loss = 0
             for iteration in iter(range((epoch_size))):
                 images, targets = next(batch_iterator)
-                print(targets)
                 if use_gpu:
                     images = Variable(images.cuda())
                     targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
@@ -141,6 +156,7 @@ class SolverWrapper(object):
                     images = Variable(images)
                     targets = [Variable(anno, volatile=True) for anno in targets]
 
+                _t.tic()
                 # forward
                 out = self.net(images, is_train=True)
 
@@ -151,24 +167,25 @@ class SolverWrapper(object):
                 loss.backward()
                 optimizer.step()
 
+                time = _t.toc()
                 loc_loss += loss_l.data[0]
                 conf_loss += loss_c.data[0]
 
-                self.add_summary(epoch, iteration, epoch_size, loss_l.data[0], loss_c.data[0], optimizer)
+                self.add_summary(epoch, iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
 
-                if iteration % 100 == 99:
-                    return True
+                if iteration % 10 == 9:
+                    break
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
 
         
-    def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, optim):
+    def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim):
         if iters == 0:
             sys.stdout.write('\n')
-        prograss = iters/epoch_size
         lr = optim.param_groups[0]['lr']
-        log = '\rEpoch {epoch:3d}: {percent:.2f}%[{prograss}] || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(epoch=epoch, lr=lr,
-                prograss='#'*int(round(10*prograss)) + '-'*int(round(10*(1-prograss))), percent=prograss, loc_loss=loc_loss, conf_loss=conf_loss)
+        log = '\rEpoch {epoch:d}: {iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}] || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(epoch=epoch, lr=lr,
+                prograss='#'*int(round(10*iters/epoch_size)) + '-'*int(round(10*(1-iters/epoch_size))), iters=iters, epoch_size=epoch_size, 
+                time=time, loc_loss=loc_loss, conf_loss=conf_loss)
         sys.stdout.write(log)
         sys.stdout.flush()
         return True
