@@ -63,6 +63,9 @@ __C.TRAIN.FG_THRESH = 0.5
 __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
+__C.TRAIN.TRAINABLE_SCOPE = 'base,extras,Norm,L2Norm,loc,conf'
+__C.TRAIN.RESUME_SCOPE = 'base,extras,Norm,L2Norm,loc,conf'
+
 
 #
 # Testing options
@@ -88,21 +91,18 @@ __C.MODEL.BASE_FN = 'vgg16'
 # Name of the model used to detect boundingbox
 __C.MODEL.MODEL_FN = 'ssd'
 
+# image size for ssd
+__C.MODEL.IMAGE_SIZE = [300, 300]
+
+__C.MODEL.PIXEL_MEANS = (103.94, 116.78, 123.68)
+
 __C.MODEL.PRIOR_BOX = edict()
 
-__C.MODEL.PRIOR_BOX.FEATURE_MAPS = [38, 19, 10, 5, 3, 1]
+__C.MODEL.PRIOR_BOX.STEPS = []
 
-__C.MODEL.PRIOR_BOX.MIN_DIM = 300
-
-__C.MODEL.PRIOR_BOX.STEPS = [8, 16, 32, 64, 100, 300]
-
-__C.MODEL.PRIOR_BOX.MIN_SIZES = [30, 60, 111, 162, 213, 264]
-
-__C.MODEL.PRIOR_BOX.MAX_SIZES = [60, 111, 162, 213, 264, 315]
+__C.MODEL.PRIOR_BOX.SIZES = [0.2, 0.95]
 
 __C.MODEL.PRIOR_BOX.ASPECT_RATIOS = [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
-
-__C.MODEL.PRIOR_BOX.VARIANCE = [0.1, 0.2]
 
 __C.MODEL.PRIOR_BOX.CLIP = True
 
@@ -110,19 +110,20 @@ __C.MODEL.FEATURE_LAYER = [22, 34, 'S', 'S', '', '']
 __C.MODEL.LAYER_DEPTH = [-1, -1, 512, 256, 256, 256]
 __C.MODEL.MBOX = [6, 6, 6, 6, 4, 4]
 
+# post process
+__C.MODEL.POST_PROCESS = edict()
+__C.MODEL.POST_PROCESS.NUM_CLASSES = 21
+__C.MODEL.POST_PROCESS.BACKGROUND_LABEL = 0
+__C.MODEL.POST_PROCESS.SCORE_THRESHOLD = 0.01
+__C.MODEL.POST_PROCESS.IOU_THRESHOLD = 0.6
+__C.MODEL.POST_PROCESS.MAX_DETECTIONS = 100
+
 #
 # MISC
 #
-__C.PIXEL_MEANS = np.array([[[102.9801, 115.9465, 122.7717]]])
 
 # Root directory of project
 __C.ROOT_DIR = osp.abspath(osp.join(osp.dirname(__file__), '..', '..'))
-
-# image size for ssd
-__C.IMG_SIZE = [300, 300]
-
-# image size for ssd
-__C.RGB_MEAN = (103.94, 116.78, 123.68)
 
 # image expand probability
 __C.PROB = 0.6

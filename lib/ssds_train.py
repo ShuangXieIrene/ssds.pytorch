@@ -26,7 +26,7 @@ class SolverWrapper(object):
     """
     A wrapper class for the training process
     """
-    def __init__(self, base_fn=None, model_fn=None, dataset_fn=None, max_epochs=None, output_dir=None, tbdir=None, resume_checkpoint=None, gpus = None, prior_box=None):
+    def __init__(self, base_fn=None, model_fn=None, dataset_fn=None, max_epochs=None, output_dir=None, tbdir=None, resume_checkpoint=None, gpus = None):
         if base_fn is None:
             base_fn = cfg.MODEL.BASE_FN
         base = net_factory.gen_base_fn(name=base_fn)
@@ -36,7 +36,7 @@ class SolverWrapper(object):
                     feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=cfg.MODEL.MBOX, num_classes=21)
         if dataset_fn is None:
             dataset_fn = cfg.DATASET_FN
-            self.dataset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.IMG_SIZE, cfg.RGB_MEAN, cfg.PROB))
+            self.dataset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.MODEL.IMAGE_SIZE, cfg.MODEL.PIXEL_MEANS, cfg.PROB))
         if max_epochs is None:
             max_epochs = cfg.TRAIN.MAX_EPOCHS
         self.max_epochs = max_epochs
@@ -52,10 +52,14 @@ class SolverWrapper(object):
         self.resume_checkpoint = resume_checkpoint
         self.checkpoint_prefix = '{}_{}'.format(base_fn, model_fn)
         self.gpus = gpus
-        if prior_box is None:
-            prior_box = cfg.MODEL.PRIOR_BOX
-        self.priorbox = PriorBox(prior_box)
-        self.priors = Variable(self.priorbox.forward(), volatile=True)
+
+        feature_maps = self.net._forward_features_size(cfg.MODEL.IMAGE_SIZE)
+        priorbox = PriorBox(image_size=cfg.MODEL.IMAGE_SIZE, feature_maps=feature_maps, aspect_ratios=cfg.MODEL.PRIOR_BOX.ASPECT_RATIOS, 
+                    scale=cfg.MODEL.PRIOR_BOX.SIZES, archor_stride=cfg.MODEL.PRIOR_BOX.STEPS, clip=cfg.MODEL.PRIOR_BOX.CLIP)
+        self.priors = Variable(priorbox.forward(), volatile=True)
+
+        # print(self.net)
+        
     
     def save_checkpoints(self, epochs, iters=None):
         if not os.path.exists(self.output_dir):
@@ -76,7 +80,7 @@ class SolverWrapper(object):
         if resume_checkpoint == '':
             return False
         print('Restoring checkpoint from {:s}'.format(resume_checkpoint))
-        return self.net.load_weights(resume_checkpoint)
+        return self.net.load_weights(resume_checkpoint, cfg.TRAIN.RESUME_SCOPE)
 
     def find_previous(self):
         if not os.path.exists(os.path.join(self.output_dir, 'checkpoint_list.txt')):
@@ -110,6 +114,20 @@ class SolverWrapper(object):
             self.net.conf.apply(self.weights_init)
         start_epoch = 0
         return start_epoch
+    
+    def trainable_param(self, trainable_scope):
+        for param in self.net.parameters():
+            param.requires_grad = False
+
+        trainable_param = []
+        for module in trainable_scope.split(','):
+            if hasattr(self.net, module):
+                # print(getattr(self.net, module))
+                for param in getattr(self.net, module).parameters():
+                    param.requires_grad = True
+                trainable_param.extend(getattr(self.net, module).parameters())
+                    
+        return trainable_param
 
     def train_model(self):
         previous = self.find_previous()
@@ -128,7 +146,8 @@ class SolverWrapper(object):
             cudnn.benchmark = True
         self.net.train()
 
-        optimizer = optim.SGD(self.net.parameters(), lr=cfg.TRAIN.LEARNING_RATE,
+        trainable_param = self.trainable_param(cfg.TRAIN.TRAINABLE_SCOPE)
+        optimizer = optim.SGD(trainable_param, lr=cfg.TRAIN.LEARNING_RATE,
                         momentum=cfg.TRAIN.MOMENTUM, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.STEPSIZE, gamma=cfg.TRAIN.GAMMA)
         # load the relative hyperpremeter

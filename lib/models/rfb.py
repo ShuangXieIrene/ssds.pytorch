@@ -98,16 +98,61 @@ class RFBNet(nn.Module):
                 #self.priors
             )
         return output
+    
+    def _forward_features_size(self, img_size):
+        x = torch.rand(1, 3, img_size[0], img_size[1])
+        x = torch.autograd.Variable(x, volatile=True).cuda()
+        sources = list()
+        self.eval()
+        # apply bases layers and cache source layer outputs
+        for k in range(len(self.base)):
+            x = self.base[k](x)
+            if k in self.feature_layer:
+                if len(sources) == 0:
+                    s = self.Norm(x)
+                    sources.append(s)
+                else:
+                    sources.append(x)
 
-    def load_weights(self, resume_checkpoint):
+        # apply extra layers and cache source layer outputs
+        for k, v in enumerate(self.extras):
+            x = v(x)
+            if k < self.indicator or k % 2 == 0:
+                sources.append(x)
+
+        return [(o.size()[2], o.size()[3]) for o in sources]
+
+    def load_weights(self, resume_checkpoint, resume_scope=''):
         if os.path.isfile(resume_checkpoint):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
+
+            # remove the module in the parrallel model
             if 'module.' in list(checkpoint.items())[0][0]: 
-                base_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
-                self.load_state_dict(base_dict)
-            else:
-                self.load_state_dict(checkpoint)
+                pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
+                checkpoint = pretrained_dict   
+
+            # extract the weights based on the resume scope
+            if resume_scope !='':
+                pretrained_dict = {}
+                if resume_scope == 'classfication':
+                    # TODO: load weight from pretrain classification
+                    print('TODO: load weight from pretrain classification')
+                else:
+                    for k, v in list(checkpoint.items()):
+                        for resume_key in resume_scope.split(','):
+                            if resume_key in k:
+                                pretrained_dict[k] = v
+                                break
+                checkpoint = pretrained_dict         
+
+            pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
+            checkpoint = self.state_dict()
+            checkpoint.update(pretrained_dict) 
+            # print([k for k, v in list(checkpoint.items())])
+
+            self.load_state_dict(checkpoint)
+
         else:
             print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
 
