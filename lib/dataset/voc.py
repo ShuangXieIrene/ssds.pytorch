@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
-# from .voc_eval import voc_eval
+from .voc_eval import voc_eval
 if sys.version_info[0] == 2:
     import xml.etree.cElementTree as ET
 else:

@@ -7,7 +7,7 @@ import os
 
 from lib.layers import *
 
-class SSD(nn.Module):
+class FSSD(nn.Module):
     """Single Shot Multibox Architecture
     The network is composed of a base VGG network followed by the
     added multibox conv layers.  Each multibox layer branches into
@@ -24,16 +24,18 @@ class SSD(nn.Module):
         head: "multibox head" consists of loc and conf conv layers
     """
 
-    def __init__(self, base, extras, head, feature_layer, num_classes):
-        super(SSD, self).__init__()
+    def __init__(self, base, extras, head, features, feature_layer, num_classes):
+        super(FSSD, self).__init__()
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
         self.extras = nn.ModuleList(extras)
         self.feature_layer = feature_layer
+        self.transforms = features[0]
+        self.pyramids = features[1]
         # print(self.base)
         # Layer learns to scale the l2 normalized features from conv4_3
-        self.L2Norm = L2Norm(512, 20)
+        self.norm = nn.BatchNorm2d(256*len(self.transforms),affine=True)
         # print(self.extras)
 
         self.loc = nn.ModuleList(head[0])
@@ -62,6 +64,8 @@ class SSD(nn.Module):
                     3: priorbox layers, Shape: [2,num_priors*4]
         """
         sources = list()
+        transformed = list()
+        pyramids = list()
         loc = list()
         conf = list()
 
@@ -69,20 +73,26 @@ class SSD(nn.Module):
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                if len(sources) == 0:
-                    s = self.L2Norm(x)
-                    sources.append(s)
-                else:
-                    sources.append(x)
+                sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
-            x = F.relu(v(x), inplace=True)
+            x = v(x)
             if k % 2 == 1:
                 sources.append(x)
+        assert len(self.transforms) == len(sources)
+        upsize = (sources[0].size()[2], sources[0].size()[3])
+        for k, v in enumerate(self.transforms):
+            size = None if k == 0 else upsize
+            transformed.append(v(sources[k], size))
+        x = torch.cat(transformed, 1)
+        x = self.norm(x)
+        for k, v in enumerate(self.pyramids):
+            x = v(x)
+            pyramids.append(x)
 
         # apply multibox head to source layers
-        for (x, l, c) in zip(sources, self.loc, self.conf):
+        for (x, l, c) in zip(pyramids, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
         # print([o.size() for o in loc])
@@ -140,47 +150,91 @@ class SSD(nn.Module):
         x = torch.rand(1, 3, img_size[0], img_size[1])
         x = torch.autograd.Variable(x, volatile=True).cuda()
         sources = list()
-        self.eval()
+        transformed = list()
+        pyramids = list()
+
         # apply bases layers and cache source layer outputs
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                if len(sources) == 0:
-                    s = self.L2Norm(x)
-                    sources.append(s)
-                else:
-                    sources.append(x)
+                sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
-            x = F.relu(v(x), inplace=True)
+            x = v(x)
             if k % 2 == 1:
                 sources.append(x)
+        assert len(self.transforms) == len(sources)
+        upsize = (sources[0].size()[2], sources[0].size()[3])
+        for k, v in enumerate(self.transforms):
+            size = None if k == 0 else upsize
+            transformed.append(v(sources[k], size))
+        x = torch.cat(transformed,1)
+        x = self.norm(x)
+        for k, v in enumerate(self.pyramids):
+            x = v(x)
+            pyramids.append(x)
+        print([(o.size()[2], o.size()[3]) for o in pyramids])
+        return [(o.size()[2], o.size()[3]) for o in pyramids]
 
-        return [(o.size()[2], o.size()[3]) for o in sources]
 
-def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
+class BasicConv(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True, bn=False, bias=True):
+        super(BasicConv, self).__init__()
+        self.out_channels = out_planes
+        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
+        self.bn = nn.BatchNorm2d(out_planes,eps=1e-5, momentum=0.01, affine=True) if bn else None
+        self.relu = nn.ReLU(inplace=True) if relu else None
+        # self.up_size = up_size
+        # self.up_sample = nn.Upsample(size=(up_size,up_size),mode='bilinear') if up_size != 0 else None
+
+    def forward(self, x, up_size=None):
+        x = self.conv(x)
+        if self.bn is not None:
+            x = self.bn(x)
+        if self.relu is not None:
+            x = self.relu(x)
+        if up_size is not None:
+            x = F.upsample(x, size=up_size, mode='bilinear')
+            # x = self.up_sample(x)
+        return x
+
+def add_extras(base, feature_layer, layer_depth, mbox, num_classes, num_fused):
     extra_layers = []
+    feature_transform_layers = []
+    pyramid_feature_layers = []
     loc_layers = []
     conf_layers = []
     in_channels = None
-    for layer, depth, box in zip(feature_layer, layer_depth, mbox):
+    feature_transform_channel = 256
+    feature_in_channels = num_fused * feature_transform_channel
+    for i, (layer, depth, box) in enumerate(zip(feature_layer, layer_depth, mbox)):
         if layer == 'S':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+            if i < num_fused:
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+            pyramid_feature_layers += [BasicConv(feature_in_channels, depth, kernel_size=3,stride=2,padding=1)]
             in_channels = depth
+            feature_in_channels = depth
         elif layer == '':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+            if i < num_fused:
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+            pyramid_feature_layers += [BasicConv(feature_in_channels, depth, kernel_size=3,stride=1,padding=1)]
             in_channels = depth
+            feature_in_channels = depth
         else:
+            pyramid_feature_layers += [BasicConv(feature_in_channels,2*feature_transform_channel,kernel_size=3,stride=(1,2)[i!=0],padding=1)]
             in_channels = depth
-        loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
-        conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
-    return base, extra_layers, (loc_layers, conf_layers)
+            feature_in_channels = 2*feature_transform_channel
+        if i < num_fused:
+            feature_transform_layers += [BasicConv(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
+        loc_layers += [nn.Conv2d(feature_in_channels, box * 4, kernel_size=3, padding=1)]
+        conf_layers += [nn.Conv2d(feature_in_channels, box * num_classes, kernel_size=3, padding=1)]
+    return base, extra_layers, (feature_transform_layers, pyramid_feature_layers), (loc_layers, conf_layers)
 
-def build_ssd(base, feature_layer, layer_depth, mbox, num_classes):
-    base_, extras_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
-    return SSD(base_, extras_, head_, feature_layer, num_classes)
+def build_fssd(base, feature_layer, layer_depth, mbox, num_classes, num_fused=3):
+    base_, extras_, features_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes, num_fused)
+    return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)

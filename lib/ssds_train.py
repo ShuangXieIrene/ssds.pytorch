@@ -129,6 +129,75 @@ class SolverWrapper(object):
                     
         return trainable_param
 
+    # def train_model(self):
+    #     previous = self.find_previous()
+    #     if previous:
+    #         start_epoch = previous[0]
+    #         self.restore_checkpoint(previous[1])
+    #     else:
+    #         start_epoch = self.initialize()
+        
+    #     # Whether gpu is avaiable or not
+    #     use_gpu = torch.cuda.is_available()
+    #     if use_gpu:
+    #         self.net.cuda()
+    #         if self.gpus is not None: torch.nn.DataParallel(self.net, device_ids=[int(i) for i in self.gpus.strip().split(',')])
+    #         # else: torch.nn.DataParallel(self.net)
+    #         cudnn.benchmark = True
+    #     self.net.train()
+
+    #     trainable_param = self.trainable_param(cfg.TRAIN.TRAINABLE_SCOPE)
+    #     optimizer = optim.SGD(trainable_param, lr=cfg.TRAIN.LEARNING_RATE,
+    #                     momentum=cfg.TRAIN.MOMENTUM, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
+    #     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=cfg.TRAIN.STEPSIZE, gamma=cfg.TRAIN.GAMMA)
+    #     # load the relative hyperpremeter
+    #     criterion = MultiBoxLoss(21, 0.5, True, 0, True, 3, 0.5, False, use_gpu)
+
+
+    #     # get dataset size
+    #     epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
+    #     data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+    #                               shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+    #     _t = Timer()
+    #     for epoch in iter(range(start_epoch+1, self.max_epochs)):
+    #         #learning rate
+    #         exp_lr_scheduler.step(epoch)
+    #         #batch data
+    #         batch_iterator = iter(data_loader)
+    #         loc_loss = 0
+    #         conf_loss = 0
+    #         for iteration in iter(range((epoch_size))):
+    #             images, targets = next(batch_iterator)
+    #             if use_gpu:
+    #                 images = Variable(images.cuda())
+    #                 targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+    #             else:
+    #                 images = Variable(images)
+    #                 targets = [Variable(anno, volatile=True) for anno in targets]
+
+    #             _t.tic()
+    #             # forward
+    #             out = self.net(images, is_train=True)
+
+    #             # backprop
+    #             optimizer.zero_grad()
+    #             loss_l, loss_c = criterion(out, targets, self.priors)
+    #             loss = loss_l + loss_c
+    #             loss.backward()
+    #             optimizer.step()
+
+    #             time = _t.toc()
+    #             loc_loss += loss_l.data[0]
+    #             conf_loss += loss_c.data[0]
+
+    #             self.add_summary(epoch, iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
+
+    #             if iteration % 10 == 9:
+    #                 break
+    #         if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
+    #             self.save_checkpoints(epoch)
+
+
     def train_model(self):
         previous = self.find_previous()
         if previous:
@@ -144,7 +213,6 @@ class SolverWrapper(object):
             if self.gpus is not None: torch.nn.DataParallel(self.net, device_ids=[int(i) for i in self.gpus.strip().split(',')])
             # else: torch.nn.DataParallel(self.net)
             cudnn.benchmark = True
-        self.net.train()
 
         trainable_param = self.trainable_param(cfg.TRAIN.TRAINABLE_SCOPE)
         optimizer = optim.SGD(trainable_param, lr=cfg.TRAIN.LEARNING_RATE,
@@ -153,51 +221,75 @@ class SolverWrapper(object):
         # load the relative hyperpremeter
         criterion = MultiBoxLoss(21, 0.5, True, 0, True, 3, 0.5, False, use_gpu)
 
-
-        # get dataset size
-        epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
-        data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
-                                  shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
-        _t = Timer()
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
+            sys.stdout.write('\rEpoch {epoch:d}:\r'.format(epoch=epoch))
             exp_lr_scheduler.step(epoch)
-            #batch data
-            batch_iterator = iter(data_loader)
-            loc_loss = 0
-            conf_loss = 0
-            for iteration in iter(range((epoch_size))):
-                images, targets = next(batch_iterator)
-                if use_gpu:
-                    images = Variable(images.cuda())
-                    targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
-                else:
-                    images = Variable(images)
-                    targets = [Variable(anno, volatile=True) for anno in targets]
-
-                _t.tic()
-                # forward
-                out = self.net(images, is_train=True)
-
-                # backprop
-                optimizer.zero_grad()
-                loss_l, loss_c = criterion(out, targets, self.priors)
-                loss = loss_l + loss_c
-                loss.backward()
-                optimizer.step()
-
-                time = _t.toc()
-                loc_loss += loss_l.data[0]
-                conf_loss += loss_c.data[0]
-
-                self.add_summary(epoch, iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
-
-                if iteration % 10 == 9:
-                    break
+            loc_loss, conf_loss, time = self.train_epoch(self.dataset, optimizer, criterion)
+            self.add_epoch_summary('Train', loc_loss, conf_loss, time, optimizer)
+            loc_loss, conf_loss, time = self.train_epoch(self.dataset, optimizer, criterion)
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
 
-        
+
+    def train_epoch(self, dataset, optimizer, criterion):
+        self.net.train()
+        epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
+        data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+                                  shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+        batch_iterator = iter(data_loader)
+        loc_loss = 0
+        conf_loss = 0
+        _t = Timer()
+        use_gpu = torch.cuda.is_available()
+        for iteration in iter(range((epoch_size))):
+            images, targets = next(batch_iterator)
+            if use_gpu:
+                images = Variable(images.cuda())
+                targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+            else:
+                images = Variable(images)
+                targets = [Variable(anno, volatile=True) for anno in targets]
+
+            _t.tic()
+            # forward
+            out = self.net(images, is_train=True)
+
+            # backprop
+            optimizer.zero_grad()
+            loss_l, loss_c = criterion(out, targets, self.priors)
+            loss = loss_l + loss_c
+            loss.backward()
+            optimizer.step()
+
+            time = _t.toc()
+            loc_loss += loss_l.data[0]
+            conf_loss += loss_c.data[0]
+            if iteration % 10 == 9:
+                break
+            self.add_iter_summary(iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
+        return loc_loss/epoch_size, conf_loss/epoch_size, _t.total_time/epoch_size
+    
+    def eval_epoch(self, dataset, detector):
+        self.net.eval()
+        epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
+        data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+                                  shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+        batch_iterator = iter(data_loader)
+        _t = Timer()
+        use_gpu = torch.cuda.is_available()
+        for iteration in iter(range((epoch_size))):
+            images, targets = next(batch_iterator)
+            if use_gpu:
+                images = Variable(images.cuda())
+                targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+            else:
+                images = Variable(images)
+                targets = [Variable(anno, volatile=True) for anno in targets]
+            _t.tic()
+            out = self.net(images, is_train=False)
+            detector()
+
     def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim):
         if iters == 0:
             sys.stdout.write('\n')
@@ -207,6 +299,24 @@ class SolverWrapper(object):
                 time=time, loc_loss=loc_loss, conf_loss=conf_loss)
         sys.stdout.write(log)
         sys.stdout.flush()
+        return True
+
+    def add_iter_summary(self, iters, epoch_size, loc_loss, conf_loss, time, optim):
+        if iters == 0:
+            sys.stdout.write('\n')
+        lr = optim.param_groups[0]['lr']
+        log = '\r{iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}] || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(lr=lr,
+                prograss='#'*int(round(10*iters/epoch_size)) + '-'*int(round(10*(1-iters/epoch_size))), iters=iters, epoch_size=epoch_size, 
+                time=time, loc_loss=loc_loss, conf_loss=conf_loss)
+        sys.stdout.write(log)
+        sys.stdout.flush()
+        return True
+
+    def add_epoch_summary(self, phase, loc_loss, conf_loss, time, optim):
+        lr = optim.param_groups[0]['lr']
+        log = '\r{phase}: || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(phase=phase, lr=lr,
+                time=time, loc_loss=loc_loss, conf_loss=conf_loss)
+        sys.stdout.write(log)
         return True
 
     def predict(self, img):

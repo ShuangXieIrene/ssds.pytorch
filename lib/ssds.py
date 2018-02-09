@@ -129,8 +129,9 @@ class ObjectDetector:
     #     return all_boxes, detect_time, nms_time
 
     def predict(self,img):
-        scale = torch.Tensor([img.shape[1], img.shape[0],
-                              img.shape[1], img.shape[0]]).cpu().numpy()
+        # scale = torch.Tensor([img.shape[1], img.shape[0],
+        #                       img.shape[1], img.shape[0]]).cpu().numpy()
+        
         _t = {'im_detect': Timer(), 'misc': Timer()}
         assert img.shape[2] == 3
         x = Variable(self.transform(img).unsqueeze(0),volatile=True)
