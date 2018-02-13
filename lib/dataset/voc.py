@@ -215,8 +215,35 @@ class VOCDetection(data.Dataset):
         '''
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
-        gt = self.target_transform(anno, 1, 1)
+        # gt = self.target_transform(anno, 1, 1)
+        gt = self.target_transform(anno)
         return img_id[1], gt
+
+    def pull_img_anno(self, index):
+        '''Returns the original annotation of image at index
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
+
+        Argument:
+            index (int): index of img to get annotation of
+        Return:
+            list:  [img_id, [(label, bbox coords),...]]
+                eg: ('001718', [('dog', (96, 13, 438, 332))])
+        '''
+        img_id = self.ids[index]
+        img = cv2.imread(self._imgpath % img_id, cv2.IMREAD_COLOR)
+        anno = ET.parse(self._annopath % img_id).getroot()
+        gt = self.target_transform(anno)
+        height, width, _ = img.shape
+        boxes = gt[:,:-1]
+        labels = gt[:,-1]
+        boxes[:, 0::2] /= width
+        boxes[:, 1::2] /= height
+        labels = np.expand_dims(labels,1)
+        targets = np.hstack((boxes,labels))
+        
+        return img, targets
 
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form

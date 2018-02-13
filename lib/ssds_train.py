@@ -14,13 +14,13 @@ import torch.nn.init as init
 from lib.layers import *
 from lib.utils.timer import Timer
 from lib.utils.nms_wrapper import nms
-from lib.dataset.data_augment import preproc
+from lib.dataset.data_augment import preproc, BaseTransform
 
 from lib.dataset import dataset_factory
 from lib.nets import net_factory
 from lib.models import model_factory
 from lib.utils.config_parse import cfg
-
+from lib.utils.eval_utils import *
 
 class SolverWrapper(object):
     """
@@ -36,7 +36,9 @@ class SolverWrapper(object):
                     feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=cfg.MODEL.MBOX, num_classes=21)
         if dataset_fn is None:
             dataset_fn = cfg.DATASET_FN
-            self.dataset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.MODEL.IMAGE_SIZE, cfg.MODEL.PIXEL_MEANS, cfg.PROB))
+            self.trainset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.MODEL.IMAGE_SIZE, cfg.MODEL.PIXEL_MEANS, cfg.PROB))
+            self.testset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TEST_SETS, None)
+            self.transform = BaseTransform(cfg.MODEL.IMAGE_SIZE, cfg.MODEL.PIXEL_MEANS, (2,0,1))
         if max_epochs is None:
             max_epochs = cfg.TRAIN.MAX_EPOCHS
         self.max_epochs = max_epochs
@@ -58,6 +60,9 @@ class SolverWrapper(object):
                     scale=cfg.MODEL.PRIOR_BOX.SIZES, archor_stride=cfg.MODEL.PRIOR_BOX.STEPS, clip=cfg.MODEL.PRIOR_BOX.CLIP)
         self.priors = Variable(priorbox.forward(), volatile=True)
 
+
+        self.detector = Detect(21, cfg.MODEL.POST_PROCESS.NUM_CLASSES, cfg.MODEL.POST_PROCESS.MAX_DETECTIONS, 
+                                cfg.MODEL.POST_PROCESS.SCORE_THRESHOLD, cfg.MODEL.POST_PROCESS.IOU_THRESHOLD)
         # print(self.net)
         
     
@@ -155,8 +160,8 @@ class SolverWrapper(object):
 
 
     #     # get dataset size
-    #     epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
-    #     data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+    #     epoch_size = len(self.trainset) // cfg.TRAIN.BATCH_SIZE
+    #     data_loader = data.DataLoader(self.trainset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
     #                               shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
     #     _t = Timer()
     #     for epoch in iter(range(start_epoch+1, self.max_epochs)):
@@ -225,17 +230,18 @@ class SolverWrapper(object):
             #learning rate
             sys.stdout.write('\rEpoch {epoch:d}:\r'.format(epoch=epoch))
             exp_lr_scheduler.step(epoch)
-            loc_loss, conf_loss, time = self.train_epoch(self.dataset, optimizer, criterion)
-            self.add_epoch_summary('Train', loc_loss, conf_loss, time, optimizer)
-            loc_loss, conf_loss, time = self.train_epoch(self.dataset, optimizer, criterion)
+            # loc_loss, conf_loss, time = self.train_epoch(self.trainset, optimizer, criterion)
+            # self.add_epoch_summary('train', loc_loss, conf_loss, time, optimizer)
+            loc_loss, conf_loss, time, prec, rec, ap = self.eval_epoch(self.testset, self.detector, criterion)
+            self.add_epoch_summary('val', ap=ap)
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
 
 
     def train_epoch(self, dataset, optimizer, criterion):
         self.net.train()
-        epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
-        data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+        epoch_size = len(dataset) // cfg.TRAIN.BATCH_SIZE
+        data_loader = data.DataLoader(dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
                                   shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
         batch_iterator = iter(data_loader)
         loc_loss = 0
@@ -244,6 +250,8 @@ class SolverWrapper(object):
         use_gpu = torch.cuda.is_available()
         for iteration in iter(range((epoch_size))):
             images, targets = next(batch_iterator)
+            # print(targets)
+            assert(False)
             if use_gpu:
                 images = Variable(images.cuda())
                 targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
@@ -270,25 +278,70 @@ class SolverWrapper(object):
             self.add_iter_summary(iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
         return loc_loss/epoch_size, conf_loss/epoch_size, _t.total_time/epoch_size
     
-    def eval_epoch(self, dataset, detector):
+    # def eval_epoch(self, dataset, detector):
+    #     self.net.eval()
+    #     epoch_size = len(dataset) // cfg.TRAIN.BATCH_SIZE
+    #     data_loader = data.DataLoader(dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
+    #                               shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+    #     batch_iterator = iter(data_loader)
+    #     _t = Timer()
+    #     use_gpu = torch.cuda.is_available()
+    #     for iteration in iter(range((epoch_size))):
+    #         images, targets = next(batch_iterator)
+    #         if use_gpu:
+    #             images = Variable(images.cuda())
+    #             targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+    #         else:
+    #             images = Variable(images)
+    #             targets = [Variable(anno, volatile=True) for anno in targets]
+    #         _t.tic()
+    #         out = self.net(images, is_train=False)
+    #         detections = detector.forward(out, self.priors)
+    #         time = _t.toc()
+    #         detector()
+
+    def eval_epoch(self, dataset, detector, criterion):
         self.net.eval()
-        epoch_size = len(self.dataset) // cfg.TRAIN.BATCH_SIZE
-        data_loader = data.DataLoader(self.dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
-                                  shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
-        batch_iterator = iter(data_loader)
+        num_images = len(dataset) // cfg.TRAIN.BATCH_SIZE
+        # data_loader = data.DataLoader(dataset, 1, num_workers=4,
+        #                           shuffle=False, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+        # batch_iterator = iter(data_loader)
         _t = Timer()
         use_gpu = torch.cuda.is_available()
-        for iteration in iter(range((epoch_size))):
-            images, targets = next(batch_iterator)
+
+        label = [list() for _ in range(21)]
+        score = [list() for _ in range(21)]
+        npos = [0] * 21
+        loc_loss = 0
+        conf_loss = 0
+        for iteration in iter(range((num_images))):
+            images, targets = dataset.pull_img_anno(iteration)
+            # images, targets = next(batch_iterator)
             if use_gpu:
-                images = Variable(images.cuda())
-                targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
+                images = Variable(self.transform(images).unsqueeze(0).cuda(), volatile=True)
+                targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0).cuda(), volatile=True) for anno in targets]
             else:
-                images = Variable(images)
-                targets = [Variable(anno, volatile=True) for anno in targets]
+                images = Variable(self.transform(images).unsqueeze(0), volatile=True)
+                targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0), volatile=True) for anno in targets]
+            targets=[torch.cat(targets)]
+
             _t.tic()
             out = self.net(images, is_train=False)
-            detector()
+            detections = detector.forward(out, self.priors)
+            time = _t.toc()
+
+            #TODO: fixed the bugs
+            # loss_l, loss_c = criterion(out, targets, self.priors)
+            # loc_loss += loss_l.data[0]
+            # conf_loss += loss_c.data[0]
+
+            label, score, npos = cal_tp_fp(detections, targets, label, score, npos)
+
+
+        prec, rec, ap = cal_pr(label, score, npos)
+        return loc_loss/num_images, conf_loss/num_images, _t.total_time/num_images, prec, rec, ap
+
+
 
     def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim):
         if iters == 0:
@@ -312,11 +365,16 @@ class SolverWrapper(object):
         sys.stdout.flush()
         return True
 
-    def add_epoch_summary(self, phase, loc_loss, conf_loss, time, optim):
-        lr = optim.param_groups[0]['lr']
-        log = '\r{phase}: || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(phase=phase, lr=lr,
-                time=time, loc_loss=loc_loss, conf_loss=conf_loss)
-        sys.stdout.write(log)
+    def add_epoch_summary(self, phase, loc_loss=None, conf_loss=None, time=None, optim=None, ap=None):
+        
+        if phase == 'train':
+            lr = optim.param_groups[0]['lr']
+            log = '\r{phase}: || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(phase=phase, lr=lr,
+                    time=time, loc_loss=loc_loss, conf_loss=conf_loss)
+            sys.stdout.write(log)
+        if phase == 'val':
+            log = '\r{phase}: || average mAP: {ap:.4f}\r'.format(phase=phase, ap=ap)
+            sys.stdout.write(log)
         return True
 
     def predict(self, img):

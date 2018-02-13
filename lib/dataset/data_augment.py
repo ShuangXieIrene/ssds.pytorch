@@ -243,8 +243,8 @@ class BaseTransform(object):
 
         interp_methods = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_NEAREST, cv2.INTER_LANCZOS4]
         interp_method = interp_methods[0]
-        img = cv2.resize(np.array(img), (self.resize,
-                                         self.resize),interpolation = interp_method).astype(np.float32)
+        img = cv2.resize(np.array(img), (self.resize[0],
+                                         self.resize[1]),interpolation = interp_method).astype(np.float32)
         img -= self.means
         img = img.transpose(self.swap)
         return torch.from_numpy(img)

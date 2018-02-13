@@ -132,7 +132,8 @@ __C.PROB = 0.6
 # Data directory
 __C.DATASET_FN = 'voc'
 __C.DATA_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'data'))
-__C.TRAIN_SETS = [('2012', 'trainval')]
+__C.TRAIN_SETS = [('2007', 'trainval'), ('2012', 'trainval')]
+__C.TEST_SETS = [('2007', 'test')]
 
 # Place outputs model under an experiments directory
 __C.EXP_DIR = './experiments/models/'
