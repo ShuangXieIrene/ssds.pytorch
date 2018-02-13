@@ -228,7 +228,7 @@ class SolverWrapper(object):
 
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
-            sys.stdout.write('\rEpoch {epoch:d}:\r'.format(epoch=epoch))
+            sys.stdout.write('\rEpoch {epoch:d}:\n'.format(epoch=epoch))
             exp_lr_scheduler.step(epoch)
             # loc_loss, conf_loss, time = self.train_epoch(self.trainset, optimizer, criterion)
             # self.add_epoch_summary('train', loc_loss, conf_loss, time, optimizer)
@@ -250,8 +250,6 @@ class SolverWrapper(object):
         use_gpu = torch.cuda.is_available()
         for iteration in iter(range((epoch_size))):
             images, targets = next(batch_iterator)
-            # print(targets)
-            assert(False)
             if use_gpu:
                 images = Variable(images.cuda())
                 targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
@@ -277,28 +275,6 @@ class SolverWrapper(object):
                 break
             self.add_iter_summary(iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
         return loc_loss/epoch_size, conf_loss/epoch_size, _t.total_time/epoch_size
-    
-    # def eval_epoch(self, dataset, detector):
-    #     self.net.eval()
-    #     epoch_size = len(dataset) // cfg.TRAIN.BATCH_SIZE
-    #     data_loader = data.DataLoader(dataset, cfg.TRAIN.BATCH_SIZE, num_workers=4,
-    #                               shuffle=True, collate_fn=dataset_factory.detection_collate, pin_memory=True)
-    #     batch_iterator = iter(data_loader)
-    #     _t = Timer()
-    #     use_gpu = torch.cuda.is_available()
-    #     for iteration in iter(range((epoch_size))):
-    #         images, targets = next(batch_iterator)
-    #         if use_gpu:
-    #             images = Variable(images.cuda())
-    #             targets = [Variable(anno.cuda(), volatile=True) for anno in targets]
-    #         else:
-    #             images = Variable(images)
-    #             targets = [Variable(anno, volatile=True) for anno in targets]
-    #         _t.tic()
-    #         out = self.net(images, is_train=False)
-    #         detections = detector.forward(out, self.priors)
-    #         time = _t.toc()
-    #         detector()
 
     def eval_epoch(self, dataset, detector, criterion):
         self.net.eval()
@@ -330,23 +306,25 @@ class SolverWrapper(object):
             detections = detector.forward(out, self.priors)
             time = _t.toc()
 
-            #TODO: fixed the bugs
+            #TODO: fix the bugs in criterion
             # loss_l, loss_c = criterion(out, targets, self.priors)
             # loc_loss += loss_l.data[0]
             # conf_loss += loss_c.data[0]
-
             label, score, npos = cal_tp_fp(detections, targets, label, score, npos)
-
+            self.add_iter_summary(iteration, num_images, loc_loss, conf_loss, time)
 
         prec, rec, ap = cal_pr(label, score, npos)
         return loc_loss/num_images, conf_loss/num_images, _t.total_time/num_images, prec, rec, ap
 
 
 
-    def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim):
-        if iters == 0:
-            sys.stdout.write('\n')
-        lr = optim.param_groups[0]['lr']
+    def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim=None):
+        # if iters == 0:
+        #     sys.stdout.write('\n')
+        if optim is not None:
+            lr = optim.param_groups[0]['lr']
+        else:
+            lr = -1
         log = '\rEpoch {epoch:d}: {iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}] || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(epoch=epoch, lr=lr,
                 prograss='#'*int(round(10*iters/epoch_size)) + '-'*int(round(10*(1-iters/epoch_size))), iters=iters, epoch_size=epoch_size, 
                 time=time, loc_loss=loc_loss, conf_loss=conf_loss)
@@ -354,10 +332,13 @@ class SolverWrapper(object):
         sys.stdout.flush()
         return True
 
-    def add_iter_summary(self, iters, epoch_size, loc_loss, conf_loss, time, optim):
-        if iters == 0:
-            sys.stdout.write('\n')
-        lr = optim.param_groups[0]['lr']
+    def add_iter_summary(self, iters, epoch_size, loc_loss, conf_loss, time, optim=None):
+        # if iters == 0:
+        #     sys.stdout.write('\n')
+        if optim is not None:
+            lr = optim.param_groups[0]['lr']
+        else:
+            lr = -1
         log = '\r{iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}] || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(lr=lr,
                 prograss='#'*int(round(10*iters/epoch_size)) + '-'*int(round(10*(1-iters/epoch_size))), iters=iters, epoch_size=epoch_size, 
                 time=time, loc_loss=loc_loss, conf_loss=conf_loss)
@@ -366,10 +347,9 @@ class SolverWrapper(object):
         return True
 
     def add_epoch_summary(self, phase, loc_loss=None, conf_loss=None, time=None, optim=None, ap=None):
-        
         if phase == 'train':
             lr = optim.param_groups[0]['lr']
-            log = '\r{phase}: || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\r'.format(phase=phase, lr=lr,
+            log = '\r{phase}: || loc_loss: {loc_loss:.4f} conf_loss: {conf_loss:.4f} || lr: {lr:.6f}\n'.format(phase=phase, lr=lr,
                     time=time, loc_loss=loc_loss, conf_loss=conf_loss)
             sys.stdout.write(log)
         if phase == 'val':
