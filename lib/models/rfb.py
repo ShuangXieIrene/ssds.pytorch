@@ -18,10 +18,12 @@ class RFBNet(nn.Module):
         self.feature_layer = feature_layer
         # print(self.base)
         # Layer learns to scale the l2 normalized features from conv4_3
+        
+        # TODO: add automatic 
         if 'RBF_lite' in feature_layer:
-            self.Norm = BasicRFB_a_lite(512,512,stride = 1,scale=1.0)
+            self.norm = [BasicRFB_a_lite(512,512,stride = 1,scale=1.0)]
         else:
-            self.Norm = BasicRFB_a(512,512,stride = 1,scale=1.0)
+            self.norm = [BasicRFB_a(512,512,stride = 1,scale=1.0), BasicRFB(1024, 1024, scale = 1.0, visual=2)]
         # print(self.extras)
 
         self.indicator = 0
@@ -36,7 +38,7 @@ class RFBNet(nn.Module):
         self.conf = nn.ModuleList(head[1])
         # print(self.loc)
 
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, is_train = False):
         """Applies network layers and ops on input image(s) x.
@@ -62,11 +64,16 @@ class RFBNet(nn.Module):
         conf = list()
 
         # apply bases layers and cache source layer outputs
+        base_feature = list()
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
+                base.append(x)
+
+        for k, v in enumerate(base_feature)
+            if k 
                 if len(sources) == 0:
-                    s = self.Norm(x)
+                    s = self.norm(x)
                     sources.append(s)
                 else:
                     sources.append(x)
@@ -109,7 +116,7 @@ class RFBNet(nn.Module):
             x = self.base[k](x)
             if k in self.feature_layer:
                 if len(sources) == 0:
-                    s = self.Norm(x)
+                    s = self.norm(x)
                     sources.append(s)
                 else:
                     sources.append(x)
@@ -131,6 +138,12 @@ class RFBNet(nn.Module):
             if 'module.' in list(checkpoint.items())[0][0]: 
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
                 checkpoint = pretrained_dict   
+
+            # change Norm to norm
+            for k, v in list(checkpoint.items()):
+                if 'Norm' in k:
+                    k.replace('Norm','norm')
+                    # print(k)
 
             # extract the weights based on the resume scope
             if resume_scope !='':

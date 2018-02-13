@@ -42,7 +42,7 @@ class FSSD(nn.Module):
         self.conf = nn.ModuleList(head[1])
         # print(self.loc)
 
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, is_train = False):
         """Applies network layers and ops on input image(s) x.

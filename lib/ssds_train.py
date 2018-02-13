@@ -32,8 +32,9 @@ class SolverWrapper(object):
         base = net_factory.gen_base_fn(name=base_fn)
         if model_fn is None:
             model_fn = cfg.MODEL.MODEL_FN
+        number_box=[2+2*len(aspect_ratios) for aspect_ratios in cfg.MODEL.PRIOR_BOX.ASPECT_RATIOS]
         self.net = model_factory.gen_model_fn(name=model_fn)(base=base, 
-                    feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=cfg.MODEL.MBOX, num_classes=21)
+                    feature_layer=cfg.MODEL.FEATURE_LAYER, layer_depth=cfg.MODEL.LAYER_DEPTH, mbox=number_box, num_classes=21)
         if dataset_fn is None:
             dataset_fn = cfg.DATASET_FN
             self.trainset = dataset_factory.gen_dataset_fn(name=dataset_fn)(cfg.DATA_DIR, cfg.TRAIN_SETS, preproc(cfg.MODEL.IMAGE_SIZE, cfg.MODEL.PIXEL_MEANS, cfg.PROB))
@@ -55,6 +56,7 @@ class SolverWrapper(object):
         self.checkpoint_prefix = '{}_{}'.format(base_fn, model_fn)
         self.gpus = gpus
 
+        print(self.net)
         feature_maps = self.net._forward_features_size(cfg.MODEL.IMAGE_SIZE)
         priorbox = PriorBox(image_size=cfg.MODEL.IMAGE_SIZE, feature_maps=feature_maps, aspect_ratios=cfg.MODEL.PRIOR_BOX.ASPECT_RATIOS, 
                     scale=cfg.MODEL.PRIOR_BOX.SIZES, archor_stride=cfg.MODEL.PRIOR_BOX.STEPS, clip=cfg.MODEL.PRIOR_BOX.CLIP)
@@ -63,7 +65,7 @@ class SolverWrapper(object):
 
         self.detector = Detect(21, cfg.MODEL.POST_PROCESS.NUM_CLASSES, cfg.MODEL.POST_PROCESS.MAX_DETECTIONS, 
                                 cfg.MODEL.POST_PROCESS.SCORE_THRESHOLD, cfg.MODEL.POST_PROCESS.IOU_THRESHOLD)
-        # print(self.net)
+        print(self.net)
         
     
     def save_checkpoints(self, epochs, iters=None):

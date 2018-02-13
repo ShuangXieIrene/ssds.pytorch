@@ -33,14 +33,14 @@ class SSD(nn.Module):
         self.feature_layer = feature_layer
         # print(self.base)
         # Layer learns to scale the l2 normalized features from conv4_3
-        self.L2Norm = L2Norm(512, 20)
+        self.norm = L2Norm(512, 20)
         # print(self.extras)
 
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
         # print(self.loc)
 
-        self.softmax = nn.Softmax()
+        self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, is_train = False):
         """Applies network layers and ops on input image(s) x.
@@ -70,7 +70,7 @@ class SSD(nn.Module):
             x = self.base[k](x)
             if k in self.feature_layer:
                 if len(sources) == 0:
-                    s = self.L2Norm(x)
+                    s = self.norm(x)
                     sources.append(s)
                 else:
                     sources.append(x)
@@ -112,6 +112,11 @@ class SSD(nn.Module):
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
                 checkpoint = pretrained_dict   
 
+            # change L2Norm to norm
+            for k, v in list(checkpoint.items()):
+                if 'L2Norm' in k:
+                    k.replace('L2Norm','norm')
+
             # extract the weights based on the resume scope
             if resume_scope !='':
                 pretrained_dict = {}
@@ -146,7 +151,7 @@ class SSD(nn.Module):
             x = self.base[k](x)
             if k in self.feature_layer:
                 if len(sources) == 0:
-                    s = self.L2Norm(x)
+                    s = self.norm(x)
                     sources.append(s)
                 else:
                     sources.append(x)

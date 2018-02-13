@@ -63,8 +63,8 @@ __C.TRAIN.FG_THRESH = 0.5
 __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
-__C.TRAIN.TRAINABLE_SCOPE = 'base,extras,Norm,L2Norm,loc,conf'
-__C.TRAIN.RESUME_SCOPE = 'base,extras,Norm,L2Norm,loc,conf'
+__C.TRAIN.TRAINABLE_SCOPE = 'base,extras,norm,Norm,L2Norm,loc,conf'
+__C.TRAIN.RESUME_SCOPE = 'base,extras,norm,Norm,L2Norm,loc,conf'
 
 
 #
@@ -108,7 +108,7 @@ __C.MODEL.PRIOR_BOX.CLIP = True
 
 __C.MODEL.FEATURE_LAYER = [22, 34, 'S', 'S', '', '']
 __C.MODEL.LAYER_DEPTH = [-1, -1, 512, 256, 256, 256]
-__C.MODEL.MBOX = [6, 6, 6, 6, 4, 4]
+# __C.MODEL.MBOX = [6, 6, 6, 6, 4, 4]
 __C.MODEL.NUM_FUSED = 3 # used for fssd
 
 # post process
