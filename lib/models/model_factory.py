@@ -1,10 +1,11 @@
 from lib.models import ssd
 from lib.models import rfb
 from lib.models import fssd
-
+from lib.models import rfb_lite
 models_map = {
                 'ssd': ssd.build_ssd,
                 'rfb': rfb.build_rfb,
+                'rfb_lite': rfb_lite.build_rfb_lite,
                 'fssd': fssd.build_fssd,
             }
 

@@ -2,7 +2,7 @@ MODEL:
   BASE_FN: vgg16
   MODEL_FN: rfb
   IMAGE_SIZE: [300, 300]
-  FEATURE_LAYER: [22, 34, 'RBF_S', 'RBF_S', '', '']
+  FEATURE_LAYER: [22, 34, 'RBF', 'RBF', '', '']
   LAYER_DEPTH: [512, 1024, 512, 256, 256, 256]
   PRIOR_BOX:
     STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
@@ -18,7 +18,7 @@ TRAIN:
   STEPSIZE: 1
   MAX_EPOCHS: 6
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 64
+  BATCH_SIZE: 32
 
 DATA_DIR: './data/VOCdevkit'
 EXP_DIR: './experiments/models/rfb/vgg16'

@@ -2,5 +2,6 @@
 weights/
 data/
 experiments/models/
+runs/
 __pycache__
 *.pyc

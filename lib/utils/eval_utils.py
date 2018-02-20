@@ -35,6 +35,59 @@ def iou_gt(detect, ground_turths):
     
 
 ## TODO: currently, it is super time cost. any ideas to improve it?
+# def cal_tp_fp(detects, ground_turths, label, score, npos, iou_threshold=0.5, conf_threshold=0.01):
+#     '''
+#     '''
+#     for det, gt in zip(detects, ground_turths):
+#         for i, det_c in enumerate(det):            
+#             gt_c = [_gt[:4].data.resize_(1,4) for _gt in gt if int(_gt[4]) == i+1]  # only 20 in det
+#             if len(det_c) == 0:cls_dets
+#                 npos[i] += len(gt_c)
+#                 continue
+#             # print(det_c)
+#             # assert(False)
+#             iou_c = []
+#             ioa_c = []
+#             score_c = []
+#             num=0
+#             for det_c_n in det_c:
+#                 if len(gt_c) > 0:
+#                     _iou, _ioa = iou_gt(det_c_n[:4], gt_c)
+#                     iou_c.append(_iou)
+#                     ioa_c.append(_ioa)
+#                 score_c.append(det_c_n[4])
+#                 num+=1
+            
+#             # No detection 
+#             if len(iou_c) == 0:
+#                 npos[i] += len(gt_c)
+#                 continue
+
+#             labels_c = [0] * len(score_c)
+#             # TODO: currently ignore the difficulty & ignore the group of boxes.
+#             # Tp-fp evaluation for non-group of boxes (if any).
+#             if len(gt_c) > 0:
+#                 # groundtruth_nongroup_of_is_difficult_list = groundtruth_is_difficult_list[
+#                 #     ~groundtruth_is_group_of_list]
+#                 max_overlap_gt_ids = np.argmax(np.array(iou_c), axis=1)
+#                 is_gt_box_detected = np.zeros(len(gt_c), dtype=bool)
+#                 for iters in range(len(labels_c)):
+#                     gt_id = max_overlap_gt_ids[iters]
+#                     if iou_c[iters][gt_id] >= iou_threshold:
+#                         # if not groundtruth_nongroup_of_is_difficult_list[gt_id]:
+#                         if not is_gt_box_detected[gt_id]:
+#                             labels_c[iters] = 1
+#                             is_gt_box_detected[gt_id] = True
+#                         # else:
+#                         #     is_matched_to_difficult_box[i] = True
+
+#             # append to the global label, score
+#             npos[i] += len(gt_c)
+#             label[i].extend(labels_c)
+#             score[i].extend(score_c)
+        
+#     return label, score, npos
+
 def cal_tp_fp(detects, ground_turths, label, score, npos, iou_threshold=0.5, conf_threshold=0.01):
     '''
     '''
@@ -44,14 +97,22 @@ def cal_tp_fp(detects, ground_turths, label, score, npos, iou_threshold=0.5, con
             iou_c = []
             ioa_c = []
             score_c = []
-            num=0
-            while det_c[num,0] > conf_threshold:
+            # num=0
+            for det_c_n in det_c:
+                if det_c_n[0] < conf_threshold:
+                    break
                 if len(gt_c) > 0:
-                    _iou, _ioa = iou_gt(det_c[num,1:], gt_c)
+                    _iou, _ioa = iou_gt(det_c_n[1:], gt_c)
                     iou_c.append(_iou)
                     ioa_c.append(_ioa)
-                score_c.append(det_c[num, 0])
-                num+=1
+                score_c.append(det_c_n[0])
+            # while det_c[num,0] > conf_threshold:
+            #     if len(gt_c) > 0:
+            #         _iou, _ioa = iou_gt(det_c[num,1:], gt_c)
+            #         iou_c.append(_iou)
+            #         ioa_c.append(_ioa)
+            #     score_c.append(det_c[num, 0])
+            #     num+=1
             
             # No detection 
             if len(iou_c) == 0:
@@ -82,7 +143,6 @@ def cal_tp_fp(detects, ground_turths, label, score, npos, iou_threshold=0.5, con
             score[i].extend(score_c)
         
     return label, score, npos
-
 
 def cal_pr(_label, _score, _npos):
     recall = []

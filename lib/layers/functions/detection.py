@@ -3,8 +3,9 @@ import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.autograd import Function
 from torch.autograd import Variable
-from lib.utils.box_utils import decode, nms
-
+from lib.utils.box_utils import decode,nms
+# from lib.utils.nms.nms_wrapper import nms
+from lib.utils.timer import Timer
 
 class Detect(Function):
     """At test time, Detect is the final layer of SSD.  Decode location preds,
@@ -66,10 +67,25 @@ class Detect(Function):
     #         conf_scores = conf_scores[c_mask]
     #         '''
 
-    #         self.boxes[i] = decoded_boxes
-    #         self.scores[i] = conf_scores
+    #         conf_scores = conf_preds[i].clone()
+    #         num_det = 0
+    #         for cl in range(1, self.num_classes):
+    #             c_mask = conf_scores[cl].gt(self.conf_thresh)
+    #             scores = conf_scores[cl][c_mask]
+    #             if scores.dim() == 0:
+    #                 continue
+    #             l_mask = c_mask.unsqueeze(1).expand_as(decoded_boxes)
+    #             boxes = decoded_boxes[l_mask].view(-1, 4)
+    #             ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+    #             self.output[i, cl, :count] = \
+    #                 torch.cat((scores[ids[:count]].unsqueeze(1),
+    #                            boxes[ids[:count]]), 1)
 
-    #     return self.boxes, self.scores
+    #     return self.output
+        #     self.boxes[i] = decoded_boxes
+        #     self.scores[i] = conf_scores
+
+        # return self.boxes, self.scores
 
 
     def forward(self, predictions, prior):
@@ -99,26 +115,55 @@ class Detect(Function):
                                         self.num_classes).transpose(2, 1)
             self.output.expand_(num, self.num_classes, self.top_k, 5)
 
+        _t = {'decode': Timer(), 'misc': Timer(), 'box_mask':Timer(), 'score_mask':Timer(),'nms':Timer(), 'cpu':Timer(),'sort':Timer()}
+        gpunms_time = 0
+        scores_time=0
+        box_time=0
+        cpu_tims=0
+        sort_time=0
+        decode_time=0
+        _t['misc'].tic()
         # Decode predictions into bboxes.
         for i in range(num):
+            _t['decode'].tic()
             decoded_boxes = decode(loc_data[i], prior_data, self.variance)
+            decode_time += _t['decode'].toc()
             # For each class, perform nms
             conf_scores = conf_preds[i].clone()
             num_det = 0
             for cl in range(1, self.num_classes):
-                c_mask = conf_scores[cl].gt(self.conf_thresh)
+                _t['cpu'].tic()
+                c_mask = conf_scores[cl].gt(self.conf_thresh).nonzero().view(-1)
+                cpu_tims+=_t['cpu'].toc()
+                if c_mask.dim() == 0:
+                    continue
+                _t['score_mask'].tic()
                 scores = conf_scores[cl][c_mask]
+                scores_time+=_t['score_mask'].toc()
                 if scores.dim() == 0:
                     continue
-                l_mask = c_mask.unsqueeze(1).expand_as(decoded_boxes)
-                boxes = decoded_boxes[l_mask].view(-1, 4)
+                _t['box_mask'].tic()
+                # l_mask = c_mask.unsqueeze(1).expand_as(decoded_boxes)
+                # boxes = decoded_boxes[l_mask].view(-1, 4)
+                boxes = decoded_boxes[c_mask, :]
+                box_time+=_t['box_mask'].toc()
                 # idx of highest scoring and non-overlapping boxes per class
+                _t['nms'].tic()
+                # cls_dets = torch.cat((boxes, scores), 1)
+                # _, order = torch.sort(scores, 0, True)
+                # cls_dets = cls_dets[order]
+                # keep = nms(cls_dets, self.nms_thresh)
+                # cls_dets = cls_dets[keep.view(-1).long()]
                 ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
+
+                gpunms_time += _t['nms'].toc()
                 self.output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)
-        flt = self.output.view(-1, 5)
-        _, idx = flt[:, 0].sort(0)
-        _, rank = idx.sort(0)
-        flt[(rank >= self.top_k).unsqueeze(1).expand_as(flt)].fill_(0)
+        nms_time= _t['misc'].toc()
+        # print(nms_time, cpu_tims, scores_time,box_time,gpunms_time)
+        # flt = self.output.view(-1, 5)
+        # _, idx = flt[:, 0].sort(0)
+        # _, rank = idx.sort(0)
+        # flt[(rank >= self.top_k).unsqueeze(1).expand_as(flt)].fill_(0)
         return self.output

@@ -7,21 +7,18 @@ import os
 
 from lib.layers import *
 
-class RFB(nn.Module):
+class RFBLite(nn.Module):
 
-    def __init__(self, base, extras, norm, head, feature_layer, num_classes):
-        super(RFB, self).__init__()
+    def __init__(self, base, extras, head, feature_layer, layer_depth, num_classes):
+        super(RFBLite, self).__init__()
         self.num_classes = num_classes
-        # SSD network
+        # rfb network
         self.base = nn.ModuleList(base)
         self.extras = nn.ModuleList(extras)
         self.feature_layer = feature_layer
-        # print(self.base)
-        # Layer learns to scale the l2 normalized features from conv4_3
         
         # TODO: add automatic 
-        self.norm = nn.ModuleList(norm)
-        # print(self.extras)
+        self.norm = BasicRFB_a_lite(layer_depth[0],layer_depth[0],stride = 1,scale=1.0)
 
         self.indicator = 0
         for layer in feature_layer:
@@ -33,7 +30,6 @@ class RFB(nn.Module):
                 self.indicator += 1 
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
-        # print(self.loc)
 
         self.softmax = nn.Softmax(dim=-1)
 
@@ -64,18 +60,16 @@ class RFB(nn.Module):
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                idx = self.feature_layer.index(k)
-                # some xxx
-                if(len(sources)) == 0:
-                    sources.append(self.norm[idx](x))
+                if len(sources) == 0:
+                    s = self.norm(x)
+                    sources.append(s)
                 else:
-                    x = self.norm[idx](x)
                     sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = v(x)
-            if k < self.indicator or k % 2 == 1:
+            if k < self.indicator or k % 2 == 0:
                 sources.append(x)
 
         # print([o.size() for o in sources])
@@ -109,13 +103,16 @@ class RFB(nn.Module):
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                idx = self.feature_layer.index(k)
-                sources.append(self.norm[idx](x))
+                if len(sources) == 0:
+                    s = self.norm(x)
+                    sources.append(s)
+                else:
+                    sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = v(x)
-            if k < self.indicator or k % 2 == 1:
+            if k < self.indicator or k % 2 == 0:
                 sources.append(x)
 
         return [(o.size()[2], o.size()[3]) for o in sources]
@@ -130,23 +127,26 @@ class RFB(nn.Module):
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
                 checkpoint = pretrained_dict   
 
+            # print([k for k, v in list(checkpoint.items())])
+            # assert(False)
+            
             # change some names in the dict
             # change_dict = {
-            #     'Norm':'norm.0',
-            #     'extras.0':'norm.1',
-            #     'extras.1':'extras.0',
-            #     'extras.2':'extras.1',
-            #     'extras.3':'extras.2',
-            #     'extras.4':'extras.3',
-            #     'extras.5':'extras.4',
-            #     'extras.6':'extras.5',
+            #     'features':'base',
+            #     '.conv.':'.',
             # }
             # for k, v in list(checkpoint.items()):
             #     for _k, _v in list(change_dict.items()):
             #         if _k in k:
             #             new_key = k.replace(_k, _v)
             #             checkpoint[new_key] = checkpoint.pop(k)
-            # print([k for k, v in list(checkpoint.items())])
+            #             break
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
             # extract the weights based on the resume scope
             if resume_scope !='':
                 pretrained_dict = {}
@@ -160,13 +160,15 @@ class RFB(nn.Module):
                                 pretrained_dict[k] = v
                                 break
                 checkpoint = pretrained_dict         
-            # print([k for k, v in list(pretrained_dict.items())])
 
+            # print([k for k, v in list(checkpoint.items())])
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
+            # print([k for k, v in list(pretrained_dict.items())])
+            # assert(False)
             checkpoint = self.state_dict()
             checkpoint.update(pretrained_dict) 
             # print([k for k, v in list(checkpoint.items())])
-            
+
             self.load_state_dict(checkpoint)
 
         else:
@@ -203,37 +205,35 @@ class BasicSepConv(nn.Module):
             x = self.relu(x)
         return x
 
-class BasicRFB_a(nn.Module):
-
+class BasicRFB_a_lite(nn.Module):
     def __init__(self, in_planes, out_planes, stride=1, scale = 0.1):
-        super(BasicRFB_a, self).__init__()
+        super(BasicRFB_a_lite, self).__init__()
         self.scale = scale
         self.out_channels = out_planes
         inter_planes = in_planes //4
 
         self.branch0 = nn.Sequential(
                 BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
-                BasicConv(inter_planes, inter_planes, kernel_size=3, stride=1, padding=1,relu=False)
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=1, dilation=1, relu=False)
                 )
         self.branch1 = nn.Sequential(
                 BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
                 BasicConv(inter_planes, inter_planes, kernel_size=(3,1), stride=1, padding=(1,0)),
-                BasicConv(inter_planes, inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
                 )
         self.branch2 = nn.Sequential(
                 BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
                 BasicConv(inter_planes, inter_planes, kernel_size=(1,3), stride=stride, padding=(0,1)),
-                BasicConv(inter_planes, inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
                 )
         self.branch3 = nn.Sequential(
                 BasicConv(in_planes, inter_planes//2, kernel_size=1, stride=1),
                 BasicConv(inter_planes//2, (inter_planes//4)*3, kernel_size=(1,3), stride=1, padding=(0,1)),
                 BasicConv((inter_planes//4)*3, inter_planes, kernel_size=(3,1), stride=stride, padding=(1,0)),
-                BasicConv(inter_planes, inter_planes, kernel_size=3, stride=1, padding=5, dilation=5, relu=False)
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=5, dilation=5, relu=False)
                 )
 
         self.ConvLinear = BasicConv(4*inter_planes, out_planes, kernel_size=1, stride=1, relu=False)
-        self.shortcut = BasicConv(in_planes, out_planes, kernel_size=1, stride=stride, relu=False)
         self.relu = nn.ReLU(inplace=False)
 
     def forward(self,x):
@@ -244,55 +244,60 @@ class BasicRFB_a(nn.Module):
 
         out = torch.cat((x0,x1,x2,x3),1)
         out = self.ConvLinear(out)
-        short = self.shortcut(x)
-        out = out*self.scale + short
+        out = out*self.scale + x
         out = self.relu(out)
+
         return out
 
-class BasicRFB(nn.Module):
-    def __init__(self, in_planes, out_planes, stride=1, scale = 0.1, visual = 1):
-        super(BasicRFB, self).__init__()
+class BasicRFB_lite(nn.Module):
+    def __init__(self, in_planes, out_planes, stride=1, scale = 0.1):
+        super(BasicRFB_lite, self).__init__()
         self.scale = scale
         self.out_channels = out_planes
         inter_planes = in_planes // 8
-        self.branch0 = nn.Sequential(
-                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
-                #BasicConv(inter_planes, (inter_planes//2)*3, kernel_size=(1,3), stride=1, padding=(0,1)),
-                BasicConv(inter_planes, 2*inter_planes, kernel_size=(3,3), stride=stride, padding=(1,1)),
-                BasicConv(2*inter_planes, 2*inter_planes, kernel_size=3, stride=1, padding=visual+1, dilation=visual+1, relu=False)
-                )
         self.branch1 = nn.Sequential(
                 BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicConv(inter_planes, (inter_planes//2)*3, kernel_size=(1,3), stride=1, padding=(0,1)),
+                BasicConv((inter_planes//2)*3, (inter_planes//2)*3, kernel_size=(3,1), stride=stride, padding=(1,0)),
+                BasicSepConv((inter_planes//2)*3, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                )
+        self.branch2 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
                 BasicConv(inter_planes, (inter_planes//2)*3, kernel_size=3, stride=1, padding=1),
-                BasicConv((inter_planes//2)*3, 2*inter_planes, kernel_size=3, stride=stride, padding=1),
-                BasicConv(2*inter_planes, 2*inter_planes, kernel_size=3, stride=1, padding=2*visual+1, dilation=2*visual+1, relu=False)
+                BasicConv((inter_planes//2)*3, (inter_planes//2)*3, kernel_size=3, stride=stride, padding=1),
+                BasicSepConv((inter_planes//2)*3, kernel_size=3, stride=1, padding=5, dilation=5, relu=False)
                 )
 
-        self.ConvLinear = BasicConv(4*inter_planes, out_planes, kernel_size=1, stride=1, relu=False)
-        self.shortcut = BasicConv(in_planes, out_planes, kernel_size=1, stride=stride, relu=False)
+        self.ConvLinear = BasicConv(3*inter_planes, out_planes, kernel_size=1, stride=1, relu=False)
+        if in_planes == out_planes:
+            self.identity = True
+        else:
+            self.identity = False
+            self.shortcut = BasicConv(in_planes, out_planes, kernel_size=1, stride=stride, relu=False)
         self.relu = nn.ReLU(inplace=False)
 
     def forward(self,x):
-        x0 = self.branch0(x)
         x1 = self.branch1(x)
+        x2 = self.branch2(x)
 
-        out = torch.cat((x0,x1),1)
+        out = torch.cat((x1,x2),1)
         out = self.ConvLinear(out)
-        short = self.shortcut(x)
-        out = out*self.scale + short
+        if self.identity:
+            out = out*self.scale + x
+        else:
+            short = self.shortcut(x)
+            out = out*self.scale + short
         out = self.relu(out)
-
         return out
 
 def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
     extra_layers = []
     loc_layers = []
     conf_layers = []
-    norm_layers = []
     in_channels = None
     for layer, depth, box in zip(feature_layer, layer_depth, mbox):
         if layer == 'RBF':
-            extra_layers += [BasicRFB(in_channels, depth, stride=2, scale = 1.0, visual=2)]
+            extra_layers += [BasicRFB_lite(in_channels, depth, stride=2, scale = 1.0)]
             in_channels = depth
         elif layer == 'S':
             extra_layers += [
@@ -305,15 +310,11 @@ def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
                     BasicConv(int(depth/2), depth, kernel_size=3)  ]
             in_channels = depth
         else:
-            if len(norm_layers) == 0:
-                norm_layers += [BasicRFB_a(depth, depth, stride = 1, scale=1.0)]
-            else:
-                norm_layers += [BasicRFB(depth, depth, scale = 1.0, visual=2)]
             in_channels = depth
         loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
-    return base, extra_layers, norm_layers, (loc_layers, conf_layers)
+    return base, extra_layers, (loc_layers, conf_layers)
 
-def build_rfb(base, feature_layer, layer_depth, mbox, num_classes):
-    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
-    return RFB(base_, extras_, norm_, head_, feature_layer, num_classes)
+def build_rfb_lite(base, feature_layer, layer_depth, mbox, num_classes):
+    base_, extras_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
+    return RFBLite(base_, extras_, head_, feature_layer, layer_depth, num_classes)

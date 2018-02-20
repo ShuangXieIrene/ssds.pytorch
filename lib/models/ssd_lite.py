@@ -7,7 +7,7 @@ import os
 
 from lib.layers import *
 
-class SSD(nn.Module):
+class SSDLite(nn.Module):
     """Single Shot Multibox Architecture
     The network is composed of a base VGG network followed by the
     added multibox conv layers.  Each multibox layer branches into
@@ -25,7 +25,7 @@ class SSD(nn.Module):
     """
 
     def __init__(self, base, extras, head, feature_layer, num_classes):
-        super(SSD, self).__init__()
+        super(SSDLite, self).__init__()
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
@@ -176,14 +176,10 @@ def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
     in_channels = None
     for layer, depth, box in zip(feature_layer, layer_depth, mbox):
         if layer == 'S':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+            extra_layers += [ _conv_dw(in_channels, depth, 2, 2) ]
             in_channels = depth
         elif layer == '':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+            extra_layers += [ _conv_dw(in_channels, depth, 1, 2) ]
             in_channels = depth
         else:
             in_channels = depth
@@ -191,6 +187,21 @@ def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (loc_layers, conf_layers)
 
+def _conv_dw(inp, oup, stride, expand_ratio):
+    return nn.Sequential(
+        # pw
+        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # dw
+        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, 1, groups=oup * expand_ratio, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # pw-linear
+        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+    )
+
 def build_ssd(base, feature_layer, layer_depth, mbox, num_classes):
     base_, extras_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
-    return SSD(base_, extras_, head_, feature_layer, num_classes)
+    return SSDLite(base_, extras_, head_, feature_layer, num_classes)

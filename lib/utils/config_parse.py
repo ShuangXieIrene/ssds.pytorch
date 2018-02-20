@@ -63,8 +63,8 @@ __C.TRAIN.FG_THRESH = 0.5
 __C.TRAIN.BG_THRESH_HI = 0.5
 __C.TRAIN.BG_THRESH_LO = 0.1
 
-__C.TRAIN.TRAINABLE_SCOPE = 'base,extras,norm,Norm,L2Norm,loc,conf'
-__C.TRAIN.RESUME_SCOPE = 'base,extras,norm,Norm,L2Norm,loc,conf'
+__C.TRAIN.TRAINABLE_SCOPE = 'base,extras,norm,loc,conf'
+__C.TRAIN.RESUME_SCOPE = 'base,extras,norm,loc,conf'
 
 
 #
@@ -137,6 +137,8 @@ __C.TEST_SETS = [('2007', 'test')]
 
 # Place outputs model under an experiments directory
 __C.EXP_DIR = './experiments/models/'
+__C.EXP_LOG = './experiments/logs/'
+__C.EXP_BOARD = True
 
 # Place outputs tensorboard log under an experiments directory
 __C.LOG_DIR = './experiments/logs/'

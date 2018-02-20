@@ -13,7 +13,7 @@ import torch.nn.init as init
 
 from lib.layers import *
 from lib.utils.timer import Timer
-from lib.utils.nms_wrapper import nms
+from lib.utils.nms.nms_wrapper import nms
 from lib.dataset.data_augment import preproc, BaseTransform
 
 from lib.dataset import dataset_factory
@@ -61,11 +61,11 @@ class SolverWrapper(object):
         priorbox = PriorBox(image_size=cfg.MODEL.IMAGE_SIZE, feature_maps=feature_maps, aspect_ratios=cfg.MODEL.PRIOR_BOX.ASPECT_RATIOS, 
                     scale=cfg.MODEL.PRIOR_BOX.SIZES, archor_stride=cfg.MODEL.PRIOR_BOX.STEPS, clip=cfg.MODEL.PRIOR_BOX.CLIP)
         self.priors = Variable(priorbox.forward(), volatile=True)
+        
 
 
         self.detector = Detect(21, cfg.MODEL.POST_PROCESS.NUM_CLASSES, cfg.MODEL.POST_PROCESS.MAX_DETECTIONS, 
                                 cfg.MODEL.POST_PROCESS.SCORE_THRESHOLD, cfg.MODEL.POST_PROCESS.IOU_THRESHOLD)
-        print(self.net)
         
     
     def save_checkpoints(self, epochs, iters=None):
@@ -228,14 +228,26 @@ class SolverWrapper(object):
         # load the relative hyperpremeter
         criterion = MultiBoxLoss(21, 0.5, True, 0, True, 3, 0.5, False, use_gpu)
 
+        #export graph for the model
+        # self.export_graph()
+        if cfg.EXP_BOARD:
+            self.writer = self.generate_boardwriter()
+
+
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
             sys.stdout.write('\rEpoch {epoch:d}:\n'.format(epoch=epoch))
             exp_lr_scheduler.step(epoch)
-            # loc_loss, conf_loss, time = self.train_epoch(self.trainset, optimizer, criterion)
-            # self.add_epoch_summary('train', loc_loss, conf_loss, time, optimizer)
+            loc_loss, conf_loss, time = self.train_epoch(self.trainset, optimizer, criterion)
+            self.add_epoch_summary('train', loc_loss, conf_loss, time, optimizer)
+            if cfg.EXP_BOARD:
+                self.writer.add_scalar('Train/loc_loss', loc_loss, epoch)
+                self.writer.add_scalar('Train/conf_loss', conf_loss, epoch)
             loc_loss, conf_loss, time, prec, rec, ap = self.eval_epoch(self.testset, self.detector, criterion)
             self.add_epoch_summary('val', ap=ap)
+            if cfg.EXP_BOARD:
+                self.writer.add_scalar('Valid/ap', ap, epoch)
+                # writer.add_pr_curve('xoxo', np.random.randint(2, size=100), np.random.rand(100), n_iter)
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
 
@@ -273,20 +285,19 @@ class SolverWrapper(object):
             time = _t.toc()
             loc_loss += loss_l.data[0]
             conf_loss += loss_c.data[0]
-            if iteration % 10 == 9:
-                break
+            # if iteration % 10 == 9:
+            #     break
             self.add_iter_summary(iteration, epoch_size, loss_l.data[0], loss_c.data[0], time, optimizer)
         return loc_loss/epoch_size, conf_loss/epoch_size, _t.total_time/epoch_size
 
     def eval_epoch(self, dataset, detector, criterion):
         self.net.eval()
-        num_images = len(dataset) // cfg.TRAIN.BATCH_SIZE
+        num_images = 100#len(dataset) // cfg.TRAIN.BATCH_SIZE
         # data_loader = data.DataLoader(dataset, 1, num_workers=4,
         #                           shuffle=False, collate_fn=dataset_factory.detection_collate, pin_memory=True)
         # batch_iterator = iter(data_loader)
         _t = Timer()
         use_gpu = torch.cuda.is_available()
-
         label = [list() for _ in range(21)]
         score = [list() for _ in range(21)]
         npos = [0] * 21
@@ -296,8 +307,8 @@ class SolverWrapper(object):
             images, targets = dataset.pull_img_anno(iteration)
             # images, targets = next(batch_iterator)
             if use_gpu:
-                images = Variable(self.transform(images).unsqueeze(0).cuda(), volatile=True)
-                targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0).cuda(), volatile=True) for anno in targets]
+                images = Variable(self.transform(images).unsqueeze(0), volatile=True).cuda()
+                targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0), volatile=True).cuda() for anno in targets]
             else:
                 images = Variable(self.transform(images).unsqueeze(0), volatile=True)
                 targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0), volatile=True) for anno in targets]
@@ -305,8 +316,9 @@ class SolverWrapper(object):
 
             _t.tic()
             out = self.net(images, is_train=False)
-            detections = detector.forward(out, self.priors)
             time = _t.toc()
+            detections = detector.forward(out, self.priors)
+            # time = _t.toc()
 
             #TODO: fix the bugs in criterion
             # loss_l, loss_c = criterion(out, targets, self.priors)
@@ -318,7 +330,99 @@ class SolverWrapper(object):
         prec, rec, ap = cal_pr(label, score, npos)
         return loc_loss/num_images, conf_loss/num_images, _t.total_time/num_images, prec, rec, ap
 
+    # def eval_epoch(self, dataset, detector, criterion):
+    #     self.net.eval()
+    #     num_images = len(dataset) // cfg.TRAIN.BATCH_SIZE
+    #     # data_loader = data.DataLoader(dataset, 1, num_workers=4,
+    #     #                           shuffle=False, collate_fn=dataset_factory.detection_collate, pin_memory=True)
+    #     # batch_iterator = iter(data_loader)
+    #     # _t = Timer()
+    #     use_gpu = torch.cuda.is_available()
 
+    #     label = [list() for _ in range(21)]
+    #     score = [list() for _ in range(21)]
+    #     npos = [0] * 21
+    #     loc_loss = 0
+    #     conf_loss = 0
+        
+    #     _t = {'im_detect': Timer(), 'misc': Timer(), 'total':Timer(), 'input':Timer(),'nms':Timer(), 'cpu':Timer(),'sort':Timer()}
+    #     _t['total'].tic()
+    #     for iteration in iter(range((num_images))):
+    #         _t['input'].tic()
+    #         images, targets = dataset.pull_img_anno(iteration)
+    #         # images, targets = next(batch_iterator)
+    #         if use_gpu:
+    #             images = Variable(self.transform(images).unsqueeze(0).cuda(), volatile=True)
+    #             targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0).cuda(), volatile=True) for anno in targets]
+    #         else:
+    #             images = Variable(self.transform(images).unsqueeze(0), volatile=True)
+    #             targets = [Variable(torch.from_numpy(anno).float().unsqueeze(0), volatile=True) for anno in targets]
+    #         targets=[torch.cat(targets)]
+    #         input_time = _t['input'].toc()
+
+    #         # _t.tic()
+    #         # out = self.net(images, is_train=False)
+    #         # detections = detector.forward(out, self.priors)
+    #         # time = _t.toc()
+
+    #         _t['im_detect'].tic()
+    #         out = self.net(images, is_train=False)      # forward pass
+    #         boxes, scores = detector.forward(out, self.priors)
+    #         boxes = boxes[0]
+    #         scores = scores[0]
+    #         detect_time = _t['im_detect'].toc()
+
+
+    #         _t['misc'].tic()
+    #         gpunms_time = 0
+    #         cpu_time = 0
+    #         sort_time = 0
+    #         detections = []
+    #         for j in range(1, 21):
+    #             _t['cpu'].tic()
+    #             # inds = torch.nonzero(scores[:,j]>0.01).view(-1)
+    #             # print(inds)
+    #             inds = torch.nonzero(scores[:,j].gt(0.01)).view(-1)
+    #             # print(c_mask)
+    #             # assert(False)
+    #             cpu_time +=_t['cpu'].toc()
+    #             # if there is det
+    #             if inds.numel() > 0:
+    #                 _t['sort'].tic()
+    #                 cls_scores = scores[:,j][inds]
+    #                 _, order = torch.sort(cls_scores, 0, True)
+    #                 cls_boxes = boxes[inds, :]
+    #                 sort_time += _t['sort'].toc()
+
+    #                 _t['nms'].tic()
+    #                 cls_dets = torch.cat((cls_boxes, cls_scores), 1)
+    #                 cls_dets = cls_dets[order]
+    #                 keep = nms(cls_dets, 0.6)
+    #                 cls_dets = cls_dets[keep.view(-1).long()]
+    #                 gpunms_time += _t['nms'].toc()
+    #                 # _t['cpu'].tic()
+    #                 detections.append(cls_dets)
+    #                 # cpu_time +=_t['cpu'].toc()
+    #                 # _t['cpu'].tic()
+    #                 # cls_dets = cls_dets[keep.view(-1).long()]
+    #                 # all_boxes[j] = cls_dets.cpu().numpy()
+    #                 # cpu_time +=_t['cpu'].toc()
+    #             else:
+    #                 detections.append([])
+    #         nms_time = _t['misc'].toc()
+    #         #TODO: fix the bugs in criterion
+    #         # loss_l, loss_c = criterion(out, targets, self.priors)
+    #         # loc_loss += loss_l.data[0]
+    #         # conf_loss += loss_c.data[0]
+    #         label, score, npos = cal_tp_fp([detections], targets, label, score, npos)
+    #         # self.add_iter_summary(iteration, num_images, loc_loss, conf_loss, time)
+
+    #         if iteration % 20 == 0:
+    #             print('im_detect: {:d}/{:d} {:.3f}s nms_time: {:.3f}s, input time: {:.3f}, gpunms: {:.3f}, cpu: {:.3f}, sort: {:.3f}'
+    #                 .format(iteration + 1, num_images, detect_time, nms_time,input_time,gpunms_time,cpu_time,sort_time))
+    #     total_time = _t['total'].toc()
+    #     prec, rec, ap = cal_pr(label, score, npos)
+    #     return loc_loss/num_images, conf_loss/num_images, total_time/num_images, prec, rec, ap
 
     def add_summary(self, epoch, iters, epoch_size, loc_loss, conf_loss, time, optim=None):
         # if iters == 0:
@@ -358,6 +462,16 @@ class SolverWrapper(object):
             log = '\r{phase}: || average mAP: {ap:.4f}\r'.format(phase=phase, ap=ap)
             sys.stdout.write(log)
         return True
+
+    def export_graph(self):
+        dummy_input = Variable(torch.randn(10, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
+        if not os.path.exists(cfg.EXP_DIR):
+            os.makedirs(cfg.EXP_DIR)
+        torch.onnx.export(self.net, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
+
+    def generate_boardwriter(self):
+        from tensorboardX import SummaryWriter
+        return SummaryWriter()
 
     def predict(self, img):
         return True

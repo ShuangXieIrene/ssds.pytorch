@@ -1,9 +1,9 @@
 MODEL:
-  BASE_FN: vgg16
-  MODEL_FN: ssd
+  BASE_FN: mobilenet_v2
+  MODEL_FN: rfb_lite
   IMAGE_SIZE: [300, 300]
-  FEATURE_LAYER: [22, 34, 'S', 'S', '', '']
-  LAYER_DEPTH: [512, 1024, 512, 256, 256, 256]
+  FEATURE_LAYER: [13, 17, 'RBF', 'S', 'S', 'S']
+  LAYER_DEPTH: [96, 320, 512, 256, 256, 128]
   PRIOR_BOX:
     STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
     SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]] #[0.2, 0.95]
@@ -11,15 +11,17 @@ MODEL:
     CLIP: True
 
 TRAIN:
-  LEARNING_RATE: 0.001
+  LEARNING_RATE: 0.05
   MOMENTUM: 0.9
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.98
+  GAMMA: 0.90
   STEPSIZE: 1
-  MAX_EPOCHS: 6
+  MAX_EPOCHS: 20
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 64
+  BATCH_SIZE: 256
+  TRAINABLE_SCOPE: 'extras,norm,loc,conf'
+  RESUME_SCOPE: 'base'
 
 DATA_DIR: './data/VOCdevkit'
-EXP_DIR: './experiments/models/ssd/vgg16'
-RESUME_CHECKPOINT: './weights/SSD_vgg_VOC_epoches_270.pth'
+EXP_DIR: './experiments/models/rfb_mobilenet_v2'
+RESUME_CHECKPOINT: './weights/mobilenetv2.pth'
