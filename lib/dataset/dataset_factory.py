@@ -48,3 +48,17 @@ def detection_collate(batch):
                 targets.append(annos)
 
     return (torch.stack(imgs, 0), targets)
+
+from .data_augment import preproc
+import torch.utils.data as data
+
+def load_data(cfg, phase):
+    if phase == 'train':
+        dataset = dataset_map[cfg.DATASET](cfg.DATASET_DIR, cfg.TRAIN_SETS, preproc(cfg.IMAGE_SIZE, cfg.PIXEL_MEANS, cfg.PROB))
+        data_loader = data.DataLoader(dataset, cfg.TRAIN_BATCH_SIZE, num_workers=cfg.NUM_WORKERS,
+                                  shuffle=True, collate_fn=detection_collate, pin_memory=True)
+    if phase == 'test':
+        dataset = dataset_map[cfg.DATASET](cfg.DATASET_DIR, cfg.TEST_SETS, preproc(cfg.IMAGE_SIZE, cfg.PIXEL_MEANS, -1))
+        data_loader = data.DataLoader(dataset, cfg.TEST_BATCH_SIZE, num_workers=cfg.NUM_WORKERS,
+                                  shuffle=False, collate_fn=detection_collate, pin_memory=True)
+    return data_loader

@@ -13,17 +13,14 @@ class Detect(Function):
     scores and threshold to a top_k number of output predictions for both
     confidence score and locations.
     """
-    def __init__(self, num_classes, bkg_label, top_k, conf_thresh, nms_thresh, variance=[0.1, 0.2]):
-        self.num_classes = num_classes
-        self.background_label = bkg_label
-        self.top_k = top_k
-        # Parameters used in nms.
-        self.nms_thresh = nms_thresh
-        if nms_thresh <= 0:
-            raise ValueError('nms_threshold must be non negative.')
-        self.conf_thresh = conf_thresh
-        self.variance = variance
-        self.output = torch.zeros(1, self.num_classes, self.top_k, 5)
+    def __init__(self, cfg, priors):
+        self.num_classes = cfg.NUM_CLASSES = 21
+        self.background_label = cfg.BACKGROUND_LABEL = 0
+        self.conf_thresh = cfg.SCORE_THRESHOLD = 0.01
+        self.nms_thresh = cfg.IOU_THRESHOLD = 0.6
+        self.top_k = cfg.MAX_DETECTIONS 
+        self.variance = cfg.VARIANCE = [0.1, 0.2]
+        self.priors = priors
 
     # def forward(self, predictions, prior):
     #     """
@@ -88,7 +85,7 @@ class Detect(Function):
         # return self.boxes, self.scores
 
 
-    def forward(self, predictions, prior):
+    def forward(self, predictions):
         """
         Args:
             loc_data: (tensor) Loc preds from loc layers
@@ -102,18 +99,19 @@ class Detect(Function):
 
         loc_data = loc.data
         conf_data = conf.data
-        prior_data = prior.data
+        prior_data = self.priors.data
 
         num = loc_data.size(0)  # batch size
         num_priors = prior_data.size(0)
-        self.output.zero_()
+        #self.output.zero_()
         if num == 1:
             # size batch x num_classes x num_priors
             conf_preds = conf_data.t().contiguous().unsqueeze(0)
         else:
             conf_preds = conf_data.view(num, num_priors,
                                         self.num_classes).transpose(2, 1)
-            self.output.expand_(num, self.num_classes, self.top_k, 5)
+            #self.output.expand_(num, self.num_classes, self.top_k, 5)
+        output = torch.zeros(num, self.num_classes, self.top_k, 5)
 
         _t = {'decode': Timer(), 'misc': Timer(), 'box_mask':Timer(), 'score_mask':Timer(),'nms':Timer(), 'cpu':Timer(),'sort':Timer()}
         gpunms_time = 0
@@ -157,7 +155,7 @@ class Detect(Function):
                 ids, count = nms(boxes, scores, self.nms_thresh, self.top_k)
 
                 gpunms_time += _t['nms'].toc()
-                self.output[i, cl, :count] = \
+                output[i, cl, :count] = \
                     torch.cat((scores[ids[:count]].unsqueeze(1),
                                boxes[ids[:count]]), 1)
         nms_time= _t['misc'].toc()
@@ -166,4 +164,4 @@ class Detect(Function):
         # _, idx = flt[:, 0].sort(0)
         # _, rank = idx.sort(0)
         # flt[(rank >= self.top_k).unsqueeze(1).expand_as(flt)].fill_(0)
-        return self.output
+        return output

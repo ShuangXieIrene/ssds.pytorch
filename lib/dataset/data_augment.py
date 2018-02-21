@@ -179,6 +179,14 @@ class preproc(object):
             targets = np.zeros((1,5))
             image = preproc_for_test(image, self.resize, self.means)
             return torch.from_numpy(image), targets
+        if self.p == -1:
+            height, width, _ = image.shape
+            boxes[:, 0::2] /= width
+            boxes[:, 1::2] /= height
+            labels = np.expand_dims(labels,1)
+            targets = np.hstack((boxes,labels))
+            image = preproc_for_test(image, self.resize, self.means)
+            return torch.from_numpy(image), targets
 
         image_o = image.copy()
         targets_o = targets.copy()

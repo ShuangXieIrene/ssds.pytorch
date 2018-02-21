@@ -12,30 +12,26 @@ class RFB(nn.Module):
     def __init__(self, base, extras, norm, head, feature_layer, num_classes):
         super(RFB, self).__init__()
         self.num_classes = num_classes
-        # SSD network
+        # RFB network
         self.base = nn.ModuleList(base)
-        self.extras = nn.ModuleList(extras)
-        self.feature_layer = feature_layer
-        # print(self.base)
-        # Layer learns to scale the l2 normalized features from conv4_3
-        
-        # TODO: add automatic 
         self.norm = nn.ModuleList(norm)
-        # print(self.extras)
+        self.extras = nn.ModuleList(extras)
+        
+        self.loc = nn.ModuleList(head[0])
+        self.conf = nn.ModuleList(head[1])
+        self.softmax = nn.Softmax(dim=-1)
 
+        self.feature_layer = feature_layer[0]
         self.indicator = 0
-        for layer in feature_layer:
+        for layer in self.feature_layer:
             if isinstance(layer, int):
                 continue
             elif layer == '' or layer == 'S':
                 break
             else:
                 self.indicator += 1 
-        self.loc = nn.ModuleList(head[0])
-        self.conf = nn.ModuleList(head[1])
-        # print(self.loc)
 
-        self.softmax = nn.Softmax(dim=-1)
+
 
     def forward(self, x, is_train = False):
         """Applies network layers and ops on input image(s) x.
@@ -159,14 +155,18 @@ class RFB(nn.Module):
                             if resume_key in k:
                                 pretrained_dict[k] = v
                                 break
-                checkpoint = pretrained_dict         
-            # print([k for k, v in list(pretrained_dict.items())])
+                checkpoint = pretrained_dict
+
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
 
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
             checkpoint = self.state_dict()
             checkpoint.update(pretrained_dict) 
-            # print([k for k, v in list(checkpoint.items())])
             
+            print("=> Resume weigths:")
+            print([k for k, v in list(pretrained_dict.items())])
+
             self.load_state_dict(checkpoint)
 
         else:
@@ -284,13 +284,13 @@ class BasicRFB(nn.Module):
 
         return out
 
-def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
+def add_extras(base, feature_layer, mbox, num_classes):
     extra_layers = []
     loc_layers = []
     conf_layers = []
     norm_layers = []
     in_channels = None
-    for layer, depth, box in zip(feature_layer, layer_depth, mbox):
+    for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
         if layer == 'RBF':
             extra_layers += [BasicRFB(in_channels, depth, stride=2, scale = 1.0, visual=2)]
             in_channels = depth
@@ -314,6 +314,6 @@ def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, norm_layers, (loc_layers, conf_layers)
 
-def build_rfb(base, feature_layer, layer_depth, mbox, num_classes):
-    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
+def build_rfb(base, feature_layer, mbox, num_classes):
+    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
     return RFB(base_, extras_, norm_, head_, feature_layer, num_classes)

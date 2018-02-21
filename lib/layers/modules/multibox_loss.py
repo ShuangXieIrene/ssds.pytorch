@@ -29,22 +29,18 @@ class MultiBoxLoss(nn.Module):
         See: https://arxiv.org/pdf/1512.02325.pdf for more details.
     """
 
-    def __init__(self, num_classes, overlap_thresh, prior_for_matching,
-                 bkg_label, neg_mining, neg_pos, neg_overlap, encode_target,
-                 use_gpu=True):
+    def __init__(self, cfg, priors, use_gpu=True):
         super(MultiBoxLoss, self).__init__()
         self.use_gpu = use_gpu
-        self.num_classes = num_classes
-        self.threshold = overlap_thresh
-        self.background_label = bkg_label
-        self.encode_target = encode_target
-        self.use_prior_for_matching = prior_for_matching
-        self.do_neg_mining = neg_mining
-        self.negpos_ratio = neg_pos
-        self.neg_overlap = neg_overlap
-        self.variance = [0.1,0.2]
+        self.num_classes = cfg.NUM_CLASSES
+        self.background_label = cfg.BACKGROUND_LABEL
+        self.negpos_ratio = cfg.NEGPOS_RATIO
+        self.threshold = cfg.MATCHED_THRESHOLD
+        self.unmatched_threshold = cfg.UNMATCHED_THRESHOLD
+        self.variance = cfg.VARIANCE
+        self.priors = priors
 
-    def forward(self, predictions, targets, priors):
+    def forward(self, predictions, targets):
         """Multibox Loss
         Args:
             predictions (tuple): A tuple containing loc preds, conf preds,
@@ -57,7 +53,7 @@ class MultiBoxLoss(nn.Module):
         """
         loc_data, conf_data = predictions
         num = loc_data.size(0)
-        priors = priors
+        priors = self.priors
         # priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         num_classes = self.num_classes

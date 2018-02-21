@@ -29,18 +29,15 @@ class SSDLite(nn.Module):
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
-        self.extras = nn.ModuleList(extras)
-        self.feature_layer = feature_layer
-        # print(self.base)
-        # Layer learns to scale the l2 normalized features from conv4_3
         self.norm = L2Norm(512, 20)
-        # print(self.extras)
+        self.extras = nn.ModuleList(extras)
 
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
-        # print(self.loc)
-
         self.softmax = nn.Softmax(dim=-1)
+
+        self.feature_layer = feature_layer[0]
+        
 
     def forward(self, x, is_train = False):
         """Applies network layers and ops on input image(s) x.
@@ -134,12 +131,17 @@ class SSDLite(nn.Module):
                             if resume_key in k:
                                 pretrained_dict[k] = v
                                 break
-                checkpoint = pretrained_dict         
+                checkpoint = pretrained_dict
+
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
 
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
             checkpoint = self.state_dict()
             checkpoint.update(pretrained_dict) 
-            # print([k for k, v in list(checkpoint.items())])
+            
+            print("=> Resume weigths:")
+            print([k for k, v in list(pretrained_dict.items())])
 
             self.load_state_dict(checkpoint)
 
@@ -169,12 +171,12 @@ class SSDLite(nn.Module):
 
         return [(o.size()[2], o.size()[3]) for o in sources]
 
-def add_extras(base, feature_layer, layer_depth, mbox, num_classes):
+def add_extras(base, feature_layer, mbox, num_classes):
     extra_layers = []
     loc_layers = []
     conf_layers = []
     in_channels = None
-    for layer, depth, box in zip(feature_layer, layer_depth, mbox):
+    for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
         if layer == 'S':
             extra_layers += [ _conv_dw(in_channels, depth, 2, 2) ]
             in_channels = depth
@@ -202,6 +204,6 @@ def _conv_dw(inp, oup, stride, expand_ratio):
         nn.BatchNorm2d(oup),
     )
 
-def build_ssd(base, feature_layer, layer_depth, mbox, num_classes):
-    base_, extras_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes)
+def build_ssd(base, feature_layer, mbox, num_classes):
+    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
     return SSDLite(base_, extras_, head_, feature_layer, num_classes)

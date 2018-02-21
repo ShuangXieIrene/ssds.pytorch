@@ -144,6 +144,50 @@ def cal_tp_fp(detects, ground_turths, label, score, npos, iou_threshold=0.5, con
         
     return label, score, npos
 
+def get_correct_detection(detects, ground_turths, iou_threshold=0.5, conf_threshold=0.01):
+    detected = list()
+    for det, gt in zip(detects, ground_turths):
+        for i, det_c in enumerate(det):            
+            gt_c = [_gt[:4].data.resize_(1,4) for _gt in gt if int(_gt[4]) == i] 
+            iou_c = []
+            ioa_c = []
+            detected_c = []
+            # num=0
+            for det_c_n in det_c:
+                if det_c_n[0] < conf_threshold:
+                    break
+                if len(gt_c) > 0:
+                    _iou, _ioa = iou_gt(det_c_n[1:], gt_c)
+                    if _iou > iou_threshold:
+                        iou_c.append(_iou)
+                        ioa_c.append(_ioa)
+                detected_c.append(det_c_n[1:])
+
+            if len(iou_c) == 0:
+                npos[i] += len(gt_c)
+                continue
+
+            labels_c = [0] * len(detected_c)
+            # TODO: currently ignore the difficulty & ignore the group of boxes.
+            # Tp-fp evaluation for non-group of boxes (if any).
+            if len(gt_c) > 0:
+                # groundtruth_nongroup_of_is_difficult_list = groundtruth_is_difficult_list[
+                #     ~groundtruth_is_group_of_list]
+                max_overlap_gt_ids = np.argmax(np.array(iou_c), axis=1)
+                is_gt_box_detected = np.zeros(len(gt_c), dtype=bool)
+                for iters in range(len(labels_c)):
+                    gt_id = max_overlap_gt_ids[iters]
+                    if iou_c[iters][gt_id] >= iou_threshold:
+                        # if not groundtruth_nongroup_of_is_difficult_list[gt_id]:
+                        if not is_gt_box_detected[gt_id]:
+                            labels_c[iters] = 1
+                            is_gt_box_detected[gt_id] = True
+            detected_c = detected_c[labels_c]
+            detected.append(detected_c)
+        
+    return detected
+
+
 def cal_pr(_label, _score, _npos):
     recall = []
     precision = []
