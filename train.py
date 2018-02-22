@@ -3,7 +3,10 @@ import sys
 import os
 import argparse
 import numpy as np
-sys.path.remove('/data/software/opencv-3.4.0/lib/python2.7/dist-packages')
+if '/data/software/opencv-3.4.0/lib/python2.7/dist-packages' in sys.path:
+    sys.path.remove('/data/software/opencv-3.4.0/lib/python2.7/dist-packages')
+if '/data/software/opencv-3.3.1/lib/python2.7/dist-packages' in sys.path:
+    sys.path.remove('/data/software/opencv-3.3.1/lib/python2.7/dist-packages')
 import cv2
 from datetime import datetime
 

@@ -79,10 +79,6 @@ class Detect(Function):
     #                            boxes[ids[:count]]), 1)
 
     #     return self.output
-        #     self.boxes[i] = decoded_boxes
-        #     self.scores[i] = conf_scores
-
-        # return self.boxes, self.scores
 
 
     def forward(self, predictions):

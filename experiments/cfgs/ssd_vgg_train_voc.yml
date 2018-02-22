@@ -1,9 +1,9 @@
 MODEL:
-  SSDS: rfb_lite
-  NETS: mobilenet_v1
+  SSDS: ssd
+  NETS: vgg16
   IMAGE_SIZE: [300, 300]
   NUM_CLASSES: 21
-  FEATURE_LAYER: [[11, 13, 'RBF', 'S', 'S', 'S'], [512, 1024, 512, 256, 256, 128]]
+  FEATURE_LAYER: [[22, 34, 'S', 'S', '', ''], [512, 1024, 512, 256, 256, 256]]
   STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
   SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]]
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
@@ -12,16 +12,16 @@ TRAIN:
   LEARNING_RATE: 0.004
   MOMENTUM: 0.9
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.978
-  STEPSIZE: 2
-  MAX_EPOCHS: 300
+  GAMMA: 0.1
+  STEPSIZE: 100
+  MAX_EPOCHS: 200
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 128
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
 
 TEST:
-  BATCH_SIZE: 64
+  BATCH_SIZE: 4
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -39,7 +39,7 @@ DATASET:
   TRAIN_SETS: [['2007', 'trainval'], ['2012', 'trainval']]
   TEST_SETS:  [['2007', 'test']]
 
-EXP_DIR: './experiments/models/rfb_mobilenet_v1'
-LOG_DIR: './experiments/models/rfb_mobilenet_v1'
-RESUME_CHECKPOINT: './weights/RFB_mobile_20_7.pth'
-PHASE: ['train','eval']
+EXP_DIR: './experiments/models/ssd_vgg16_voc'
+LOG_DIR: './experiments/models/ssd_vgg16_voc'
+RESUME_CHECKPOINT: './weights/ssd/vgg16_ssd_VOC_74.pth'
+PHASE: ['test']

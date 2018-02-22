@@ -3,6 +3,7 @@ import numpy as np
 import os
 import sys
 import cv2
+import pickle
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -32,8 +33,10 @@ class Solver(object):
         self.cfg = cfg
 
         # Load data
-        self.train_loader = load_data(cfg.DATASET, 'train')
-        self.test_loader = load_data(cfg.DATASET, 'test')
+        print('===> Loading data')
+        self.train_loader = load_data(cfg.DATASET, 'train') if 'train' in cfg.PHASE else None
+        self.eval_loader = load_data(cfg.DATASET, 'eval') if 'eval' in cfg.PHASE else None
+        self.test_loader = load_data(cfg.DATASET, 'test') if 'test' in cfg.PHASE else None
 
         # Build model
         print('===> Building model')
@@ -48,7 +51,7 @@ class Solver(object):
             self.model.cuda()
             self.priors.cuda()
             cudnn.benchmark = True
-            self.model = torch.nn.DataParallel(self.model).module
+            # self.model = torch.nn.DataParallel(self.model).module
 
         # Print the model architecture and parameters
         print('Model architectures:\n{}\n'.format(self.model))
@@ -86,7 +89,7 @@ class Solver(object):
         torch.save(self.model.state_dict(), filename)
         with open(os.path.join(self.output_dir, 'checkpoint_list.txt'), 'a') as f:
             f.write('epoch {epoch:d}: {filename}\n'.format(epoch=epochs, filename=filename))
-        print('\nWrote snapshot to: {:s}'.format(filename))
+        print('Wrote snapshot to: {:s}'.format(filename))
         
         # TODO: write relative cfg under the same page
     
@@ -152,16 +155,18 @@ class Solver(object):
             start_epoch = self.initialize()
 
         # export graph for the model, onnx always not works
-        # self.export_graph()
+        self.export_graph()
 
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
-            sys.stdout.write('\rEpoch {epoch:d}:\n'.format(epoch=epoch))
+            sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.max_epochs))
             self.exp_lr_scheduler.step(epoch)
             if 'train' in cfg.PHASE:
                 self.train_epoch(self.model, self.train_loader, self.optimizer, self.criterion, self.writer, epoch, self.use_gpu)
             if 'eval' in cfg.PHASE:
-                self.eval_epoch(self.model, self.test_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
+                self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
+            if 'test' in cfg.PHASE:
+                self.test_epoch(self.model, self.eval_loader, self.detector, self.output_dir , self.use_gpu)
 
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
@@ -187,7 +192,7 @@ class Solver(object):
             else:
                 images = Variable(images)
                 targets = [Variable(anno, volatile=True) for anno in targets]
-
+            print('targets',targets)
             _t.tic()
             # forward
             out = model(images, is_train=True)
@@ -295,12 +300,135 @@ class Solver(object):
         writer.add_scalar('Eval/mAP', ap, epoch)
         # self.draw_pr()
 
+    # TODO: HOW TO MAKE THE DATALOADER WITHOUT SHUFFLE
+    # def test_epoch(self, model, data_loader, detector, output_dir, use_gpu):
+    #     # sys.stdout.write('\r===> Eval mode\n')
+        
+    #     model.eval()
+
+    #     num_images = len(data_loader.dataset)
+    #     num_classes = detector.num_classes
+    #     batch_size = data_loader.batch_size
+    #     all_boxes = [[[] for _ in range(num_images)] for _ in range(num_classes)]
+    #     empty_array = np.transpose(np.array([[],[],[],[],[]]),(1,0))
+
+    #     epoch_size = len(data_loader)
+    #     batch_iterator = iter(data_loader)
+
+    #     _t = Timer()
+
+    #     for iteration in iter(range((epoch_size))):
+    #         images, targets = next(batch_iterator)
+    #         targets = [[anno[0][1], anno[0][0], anno[0][1], anno[0][0]] for anno in targets] # contains the image size
+    #         if use_gpu:
+    #             images = Variable(images.cuda())
+    #         else:
+    #             images = Variable(images)
+
+    #         _t.tic()
+    #         # forward
+    #         out = model(images, is_train=False)
+
+    #         # detect
+    #         detections = detector.forward(out)
+
+    #         time = _t.toc()
+
+    #         # TODO: make it smart:
+    #         for i, (dets, scale) in enumerate(zip(detections, targets)):
+    #             for j in range(1, num_classes):
+    #                 cls_dets = list()
+    #                 for det in dets[j]:
+    #                     if det[0] > 0:
+    #                         d = det.cpu().numpy()
+    #                         score, box = d[0], d[1:]
+    #                         box *= scale
+    #                         box = np.append(box, score)
+    #                         cls_dets.append(box)
+    #                 if len(cls_dets) == 0:
+    #                     cls_dets = empty_array
+    #                 all_boxes[j][iteration*batch_size+i] = np.array(cls_dets)
+
+    #         # log per iter
+    #         log = '\r==>Test: || {iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}]\r'.format(
+    #                 prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size, 
+    #                 time=time)
+    #         sys.stdout.write(log)
+    #         sys.stdout.flush()
+
+    #     # write result to pkl
+    #     with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
+    #         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
+        
+    #     print('Evaluating detections')
+    #     data_loader.dataset.evaluate_detections(all_boxes, output_dir)
+
+
+    def test_epoch(self, model, data_loader, detector, output_dir, use_gpu):
+        # sys.stdout.write('\r===> Eval mode\n')
+        
+        model.eval()
+
+        dataset = data_loader.dataset
+        num_images = len(dataset)
+        num_classes = detector.num_classes
+        all_boxes = [[[] for _ in range(num_images)] for _ in range(num_classes)]
+        empty_array = np.transpose(np.array([[],[],[],[],[]]),(1,0))
+
+        _t = Timer()
+
+        for i in iter(range((num_images))):
+            img = dataset.pull_image(i)
+            scale = [img.shape[1], img.shape[0], img.shape[1], img.shape[0]]
+            if use_gpu:
+                images = Variable(dataset.preproc(img).unsqueeze(0).cuda(), volatile=True)
+            else:
+                images = Variable(dataset.preproc(img).unsqueeze(0), volatile=True)
+
+            _t.tic()
+            # forward
+            out = model(images, is_train=False)
+
+            # detect
+            detections = detector.forward(out)
+
+            time = _t.toc()
+
+            # TODO: make it smart:
+            for j in range(1, num_classes):
+                cls_dets = list()
+                for det in detections[0][j]:
+                    if det[0] > 0:
+                        d = det.cpu().numpy()
+                        score, box = d[0], d[1:]
+                        box *= scale
+                        box = np.append(box, score)
+                        cls_dets.append(box)
+                if len(cls_dets) == 0:
+                    cls_dets = empty_array
+                all_boxes[j][i] = np.array(cls_dets)
+
+            # log per iter
+            log = '\r==>Test: || {iters:d}/{epoch_size:d} in {time:.2f}s [{prograss}]\r'.format(
+                    prograss='#'*int(round(10*i/num_images)) + '-'*int(round(10*(1-i/num_images))), iters=i, epoch_size=num_images, 
+                    time=time)
+            sys.stdout.write(log)
+            sys.stdout.flush()
+
+        # write result to pkl
+        with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
+            pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
+        
+        print('Evaluating detections')
+        data_loader.dataset.evaluate_detections(all_boxes, output_dir)
+
 
     def export_graph(self):
         dummy_input = Variable(torch.randn(10, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
         if not os.path.exists(cfg.EXP_DIR):
             os.makedirs(cfg.EXP_DIR)
-        torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
+        # torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
+        self.writer.add_graph(self.model, (dummy_input, ))
 
 
     def draw_pr(self, precision, recall, iter):

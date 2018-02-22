@@ -40,6 +40,8 @@ def create_model(cfg):
     model = ssds_map[cfg.SSDS](base=base, feature_layer=cfg.FEATURE_LAYER, mbox=number_box, num_classes=cfg.NUM_CLASSES)
     #
     feature_maps = model._forward_features_size(cfg.IMAGE_SIZE)
+    print('==>Feature map size:')
+    print(feature_maps)
     priorbox = PriorBox(image_size=cfg.IMAGE_SIZE, feature_maps=feature_maps, aspect_ratios=cfg.ASPECT_RATIOS, 
                     scale=cfg.SIZES, archor_stride=cfg.STEPS, clip=cfg.CLIP)
     priors = Variable(priorbox.forward(), volatile=True)

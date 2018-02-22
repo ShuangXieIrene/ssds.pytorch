@@ -178,7 +178,7 @@ __C.EXP_DIR = osp.abspath(osp.join(__C.ROOT_DIR, 'experiments/models/'))
 __C.LOG_DIR = __C.EXP_DIR
 __C.RESUME_CHECKPOINT = ''
 __C.CHECKPOINTS_PREFIX = '{}_{}_{}'.format(__C.MODEL.SSDS, __C.MODEL.NETS, __C.DATASET.DATASET)
-__C.PHASE = ['train', 'eval']
+__C.PHASE = ['train', 'eval', 'test']
 
 # def _merge_a_into_b(a, b):
 #   """Merge config dictionary a into config dictionary b, clobbering the
