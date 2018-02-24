@@ -62,11 +62,6 @@ if PYTHON_VERSION == 2:
 elif PYTHON_VERSION == 3:
     from urllib.request import urlretrieve
 
-
-def _isArrayLike(obj):
-    return hasattr(obj, '__iter__') and hasattr(obj, '__len__')
-
-
 class COCO:
     def __init__(self, annotation_file=None):
         """
@@ -135,8 +130,8 @@ class COCO:
                iscrowd (boolean)       : get anns for given crowd label (False or True)
         :return: ids (int array)       : integer array of ann ids
         """
-        imgIds = imgIds if _isArrayLike(imgIds) else [imgIds]
-        catIds = catIds if _isArrayLike(catIds) else [catIds]
+        imgIds = imgIds if type(imgIds) == list else [imgIds]
+        catIds = catIds if type(catIds) == list else [catIds]
 
         if len(imgIds) == len(catIds) == len(areaRng) == 0:
             anns = self.dataset['annotations']
@@ -162,9 +157,9 @@ class COCO:
         :param catIds (int array)  : get cats for given cat ids
         :return: ids (int array)   : integer array of cat ids
         """
-        catNms = catNms if _isArrayLike(catNms) else [catNms]
-        supNms = supNms if _isArrayLike(supNms) else [supNms]
-        catIds = catIds if _isArrayLike(catIds) else [catIds]
+        catNms = catNms if type(catNms) == list else [catNms]
+        supNms = supNms if type(supNms) == list else [supNms]
+        catIds = catIds if type(catIds) == list else [catIds]
 
         if len(catNms) == len(supNms) == len(catIds) == 0:
             cats = self.dataset['categories']
@@ -183,8 +178,8 @@ class COCO:
         :param catIds (int array) : get imgs with all given cats
         :return: ids (int array)  : integer array of img ids
         '''
-        imgIds = imgIds if _isArrayLike(imgIds) else [imgIds]
-        catIds = catIds if _isArrayLike(catIds) else [catIds]
+        imgIds = imgIds if type(imgIds) == list else [imgIds]
+        catIds = catIds if type(catIds) == list else [catIds]
 
         if len(imgIds) == len(catIds) == 0:
             ids = self.imgs.keys()
@@ -203,7 +198,7 @@ class COCO:
         :param ids (int array)       : integer ids specifying anns
         :return: anns (object array) : loaded ann objects
         """
-        if _isArrayLike(ids):
+        if type(ids) == list:
             return [self.anns[id] for id in ids]
         elif type(ids) == int:
             return [self.anns[ids]]
@@ -214,7 +209,7 @@ class COCO:
         :param ids (int array)       : integer ids specifying cats
         :return: cats (object array) : loaded cat objects
         """
-        if _isArrayLike(ids):
+        if type(ids) == list:
             return [self.cats[id] for id in ids]
         elif type(ids) == int:
             return [self.cats[ids]]
@@ -225,7 +220,7 @@ class COCO:
         :param ids (int array)       : integer ids specifying img
         :return: imgs (object array) : loaded img objects
         """
-        if _isArrayLike(ids):
+        if type(ids) == list:
             return [self.imgs[id] for id in ids]
         elif type(ids) == int:
             return [self.imgs[ids]]

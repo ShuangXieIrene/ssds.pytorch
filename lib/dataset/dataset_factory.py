@@ -47,10 +47,6 @@ def detection_collate(batch):
                 imgs.append(tup)
             elif isinstance(tup, type(np.empty(0))):
                 annos = torch.from_numpy(tup).float()
-                if tup[0][0] > 1:
-                    print('tup:\n',tup)
-                    print('annos:\n',annos)
-                    assert((False), 'tup:\n{}'.format(tup))
                 targets.append(annos)
 
     return (torch.stack(imgs, 0), targets)

@@ -120,6 +120,10 @@ class RFBLite(nn.Module):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
 
+
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
+
             # remove the module in the parrallel model
             if 'module.' in list(checkpoint.items())[0][0]: 
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
@@ -129,22 +133,22 @@ class RFBLite(nn.Module):
             # assert(False)
             
             # change some names in the dict
-            change_dict = {
-                'features':'base',
-                '.conv.':'.',
-            }
-            for k, v in list(checkpoint.items()):
-                for _k, _v in list(change_dict.items()):
-                    if _k in k:
-                        new_key = k.replace(_k, _v)
-                        checkpoint[new_key] = checkpoint.pop(k)
-                        break
-            for k, v in list(checkpoint.items()):
-                for _k, _v in list(change_dict.items()):
-                    if _k in k:
-                        new_key = k.replace(_k, _v)
-                        checkpoint[new_key] = checkpoint.pop(k)
-                        break
+            # change_dict = {
+            #     'features':'base',
+            #     '.conv.':'.',
+            # }
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
 
             # extract the weights based on the resume scope
             if resume_scope !='':
@@ -160,16 +164,18 @@ class RFBLite(nn.Module):
                                 break
                 checkpoint = pretrained_dict
 
-            print("=> Weigths in the checkpoints:")
-            print([k for k, v in list(checkpoint.items())])
-
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
-            checkpoint = self.state_dict()
-            checkpoint.update(pretrained_dict) 
-            
             print("=> Resume weigths:")
             print([k for k, v in list(pretrained_dict.items())])
 
+            checkpoint = self.state_dict()
+
+            unresume_dict = set(checkpoint)-set(pretrained_dict)
+            print("=> UNResume weigths:")
+            print(unresume_dict)
+
+            checkpoint.update(pretrained_dict) 
+            
             self.load_state_dict(checkpoint)
 
         else:

@@ -14,7 +14,7 @@ TRAIN:
   WEIGHT_DECAY: 0.0001
   GAMMA: 0.1
   STEPSIZE: 120
-  MAX_EPOCHS: 270
+  MAX_EPOCHS: 300
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
@@ -42,4 +42,4 @@ DATASET:
 EXP_DIR: './experiments/models/rfb_mobilenet_v1_voc'
 LOG_DIR: './experiments/models/rfb_mobilenet_v1_voc'
 RESUME_CHECKPOINT: './weights/RFB_mobile_20_7.pth'
-PHASE: ['train']
+PHASE: ['train','test']

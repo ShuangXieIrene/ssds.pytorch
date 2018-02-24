@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 import sys
 import os
 import argparse
@@ -16,8 +17,6 @@ import torch.backends.cudnn as cudnn
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 
-from lib.modeling.model_builder import create_model
-from lib.dataset.dataset_factory import load_data
 from lib.utils.config_parse import cfg_from_file
 from lib.ssds_train import train_model
 

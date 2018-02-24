@@ -4,7 +4,6 @@ import os
 import sys
 import cv2
 import pickle
-
 import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
@@ -19,7 +18,6 @@ from lib.layers import *
 from lib.utils.timer import Timer
 from lib.utils.nms.nms_wrapper import nms
 from lib.dataset.data_augment import preproc, BaseTransform
-
 from lib.modeling.model_builder import create_model
 from lib.dataset.dataset_factory import load_data
 from lib.utils.config_parse import cfg
@@ -166,7 +164,7 @@ class Solver(object):
             if 'eval' in cfg.PHASE:
                 self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
             if 'test' in cfg.PHASE:
-                self.test_epoch(self.model, self.eval_loader, self.detector, self.output_dir , self.use_gpu)
+                self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
 
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
@@ -192,7 +190,6 @@ class Solver(object):
             else:
                 images = Variable(images)
                 targets = [Variable(anno, volatile=True) for anno in targets]
-            print('targets',targets)
             _t.tic()
             # forward
             out = model(images, is_train=True)
@@ -200,6 +197,11 @@ class Solver(object):
             # backprop
             optimizer.zero_grad()
             loss_l, loss_c = criterion(out, targets)
+
+            # some bugs in coco train2017. maybe the annonation bug.
+            if loss_l.data[0] == float("Inf"):
+                continue
+
             loss = loss_l + loss_c
             loss.backward()
             optimizer.step()
@@ -381,9 +383,9 @@ class Solver(object):
             img = dataset.pull_image(i)
             scale = [img.shape[1], img.shape[0], img.shape[1], img.shape[0]]
             if use_gpu:
-                images = Variable(dataset.preproc(img).unsqueeze(0).cuda(), volatile=True)
+                images = Variable(dataset.preproc(img)[0].unsqueeze(0).cuda(), volatile=True)
             else:
-                images = Variable(dataset.preproc(img).unsqueeze(0), volatile=True)
+                images = Variable(dataset.preproc(img)[0].unsqueeze(0), volatile=True)
 
             _t.tic()
             # forward

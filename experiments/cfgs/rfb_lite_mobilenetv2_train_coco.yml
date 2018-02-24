@@ -12,13 +12,13 @@ TRAIN:
   LEARNING_RATE: 0.004
   MOMENTUM: 0.9
   WEIGHT_DECAY: 0.0001
-  GAMMA: 0.978
-  STEPSIZE: 100
-  MAX_EPOCHS: 20
+  GAMMA: 0.2
+  STEPSIZE: 120
+  MAX_EPOCHS: 270
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 2
-  TRAINABLE_SCOPE: 'norm,extras,loc,conf'
-  RESUME_SCOPE: 'base,norm,extras' #,loc,conf'
+  BATCH_SIZE: 32
+  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
+  RESUME_SCOPE: 'base,norm,extras,loc,conf'
 
 TEST:
   BATCH_SIZE: 48

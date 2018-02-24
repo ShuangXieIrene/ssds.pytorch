@@ -49,6 +49,8 @@ class COCODetection(data.Dataset):
             'test-dev2015' : 'test2015',
         }
 
+        # self.data_name = list()
+        # self.data_len = list()
         for (year, image_set) in image_sets:
             coco_name = image_set+year
             data_name = (self._view_map[coco_name]
@@ -66,7 +68,11 @@ class COCODetection(data.Dataset):
                                                   _COCO.getCatIds()))
             indexes = _COCO.getImgIds()
             self.image_indexes = indexes
-            self.ids.extend([self.image_path_from_index(data_name, index) for index in indexes ])
+            # seems it will reduce the speed during the training.
+            # self.ids.extend(indexes)
+            # self.data_len.append(len(indexes))
+            # self.data_name.append(data_name)
+            self.ids.extend(self._load_coco_img_path(coco_name, indexes))
             if image_set.find('test') != -1:
                 print('test set will not load annotations!')
             else:
@@ -105,6 +111,7 @@ class COCODetection(data.Dataset):
             print('{} gt roidb loaded from {}'.format(coco_name,cache_file))
             return roidb
 
+        print('parsing gt roidb for {}'.format(coco_name))
         gt_roidb = [self._annotation_from_index(index, _COCO)
                     for index in indexes]
         with open(cache_file, 'wb') as fid:
@@ -112,6 +119,21 @@ class COCODetection(data.Dataset):
         print('wrote gt roidb to {}'.format(cache_file))
         return gt_roidb
 
+    def _load_coco_img_path(self, coco_name, indexes):
+        cache_file=os.path.join(self.cache_path,coco_name+'_img_path.pkl')
+        if os.path.exists(cache_file):
+            with open(cache_file, 'rb') as fid:
+                img_path = pickle.load(fid)
+            print('{} img path loaded from {}'.format(coco_name,cache_file))
+            return img_path
+
+        print('parsing img path for {}'.format(coco_name))
+        img_path = [self.image_path_from_index(coco_name, index)
+                    for index in indexes]
+        with open(cache_file, 'wb') as fid:
+            pickle.dump(img_path,fid,pickle.HIGHEST_PROTOCOL)
+        print('wrote img path to {}'.format(cache_file))
+        return img_path
 
     def _annotation_from_index(self, index, _COCO):
         """
@@ -156,6 +178,14 @@ class COCODetection(data.Dataset):
 
 
     def __getitem__(self, index):
+        # lens = 0
+        # name = ''
+        # for n, l in zip(self.data_name, self.data_len):
+        #     lens += l
+        #     name = n
+        #     if index < lens:
+        #         break
+        # img_id = self.image_path_from_index(name, self.ids[index])
         img_id = self.ids[index]
         target = self.annotations[index]
         img = cv2.imread(img_id, cv2.IMREAD_COLOR)

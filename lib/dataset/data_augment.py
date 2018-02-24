@@ -172,7 +172,6 @@ class preproc(object):
         self.p = p
 
     def __call__(self, image, targets=None):
-        print('input:\n',targets)
         # some bugs 
         if self.p == -2: # abs_test
             targets = np.zeros((1,5))
@@ -180,14 +179,12 @@ class preproc(object):
             targets[0] = image.shape[1]
             image = preproc_for_test(image, self.resize, self.means)
             return torch.from_numpy(image), targets
+            
         boxes = targets[:,:-1].copy()
         labels = targets[:,-1].copy()
         if len(boxes) == 0:
-            #boxes = np.empty((0, 4))
             targets = np.zeros((1,5))
-            targets[0] = image.shape[0]
-            targets[0] = image.shape[1]
-            image = preproc_for_test(image, self.resize, self.means)
+            image = preproc_for_test(image, self.resize, self.means) # some ground truth in coco do not have bounding box! weird!
             return torch.from_numpy(image), targets
         if self.p == -1: # eval
             height, width, _ = image.shape
@@ -225,16 +222,13 @@ class preproc(object):
         boxes_t = boxes[mask_b]
         labels_t = labels[mask_b].copy()
 
-        print('box\n', boxes_t)
         if len(boxes_t)==0:
-            print('problem:\n', targets_o)
             image = preproc_for_test(image_o, self.resize, self.means)
             return torch.from_numpy(image),targets_o
 
         labels_t = np.expand_dims(labels_t,1)
         targets_t = np.hstack((boxes_t,labels_t))
 
-        print('output\n', targets_t)
         return torch.from_numpy(image_t), targets_t
 
 
