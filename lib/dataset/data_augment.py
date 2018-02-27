@@ -163,13 +163,21 @@ def preproc_for_test(image, insize, mean):
     image -= mean
     return image.transpose(2, 0, 1)
 
+def draw_bbox(image, bbxs, color=(0, 255, 0)):
+    img = image.copy()
+    bbxs = np.array(bbxs).astype(np.int32)
+    for bbx in bbxs:
+        cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), color, 5)
+    return img
 
 class preproc(object):
 
-    def __init__(self, resize, rgb_means, p):
+    def __init__(self, resize, rgb_means, p, writer=None):
         self.means = rgb_means
         self.resize = resize
         self.p = p
+        self.writer = writer # writer used for tensorboard visualization
+        self.epoch = 0
 
     def __call__(self, image, targets=None):
         # some bugs 
@@ -179,7 +187,7 @@ class preproc(object):
             targets[0] = image.shape[1]
             image = preproc_for_test(image, self.resize, self.means)
             return torch.from_numpy(image), targets
-            
+
         boxes = targets[:,:-1].copy()
         labels = targets[:,-1].copy()
         if len(boxes) == 0:
@@ -205,11 +213,34 @@ class preproc(object):
         labels_o = np.expand_dims(labels_o,1)
         targets_o = np.hstack((boxes_o,labels_o))
 
+        if self.writer is not None:
+            image_show = draw_bbox(image, boxes)
+            self.writer.add_image('preprocess/input_image', image_show, self.epoch)
+
         image_t, boxes, labels = _crop(image, boxes, labels)
+        if self.writer is not None:
+            image_show = draw_bbox(image_t, boxes)
+            self.writer.add_image('preprocess/crop_image', image_show, self.epoch)
+
         image_t = _distort(image_t)
+        if self.writer is not None:
+            image_show = draw_bbox(image_t, boxes)
+            self.writer.add_image('preprocess/distort_image', image_show, self.epoch)
+
         image_t, boxes = _expand(image_t, boxes, self.means, self.p)
+        if self.writer is not None:
+            image_show = draw_bbox(image_t, boxes)
+            self.writer.add_image('preprocess/expand_image', image_show, self.epoch)
+
         image_t, boxes = _mirror(image_t, boxes)
-        #image_t, boxes = _mirror(image, boxes)
+        if self.writer is not None:
+            image_show = draw_bbox(image_t, boxes)
+            self.writer.add_image('preprocess/mirror_image', image_show, self.epoch)
+
+        # only write the preprocess step for the first image
+        if self.writer is not None:
+            print('image adding')
+            self.release_writer()
 
         height, width, _ = image_t.shape
         image_t = preproc_for_test(image_t, self.resize, self.means)
@@ -230,6 +261,13 @@ class preproc(object):
         targets_t = np.hstack((boxes_t,labels_t))
 
         return torch.from_numpy(image_t), targets_t
+    
+    def add_writer(self, writer, epoch=None):
+        self.writer = writer
+        self.epoch = epoch if epoch is not None else self.epoch + 1
+    
+    def release_writer(self):
+        self.writer = None
 
 
 

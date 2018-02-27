@@ -77,36 +77,48 @@ __C.MODEL.NUM_FUSED = 3
 # Train options
 # ---------------------------------------------------------------------------- #
 __C.TRAIN = AttrDict()
-
-# Initial learning rate
-__C.TRAIN.LEARNING_RATE = 0.001
-
-# Momentum
-__C.TRAIN.MOMENTUM = 0.9
-
-# Weight decay, for regularization
-__C.TRAIN.WEIGHT_DECAY = 0.0001
-
-# Factor for reducing the learning rate
-__C.TRAIN.GAMMA = 0.98
-
-# Step size for reducing the learning rate
-__C.TRAIN.STEPSIZE = 1
-
 # The number of checkpoints kept, older ones are deleted to save space
 __C.TRAIN.CHECKPOINTS_KEPT = 10
 __C.TRAIN.CHECKPOINTS_EPOCHS = 5
-
 # The number of max iters
 __C.TRAIN.MAX_EPOCHS = 300
-
 # Minibatch size
 __C.TRAIN.BATCH_SIZE = 128
-
 # trainable scope and resuming scope
 __C.TRAIN.TRAINABLE_SCOPE = 'base,extras,norm,loc,conf'
 __C.TRAIN.RESUME_SCOPE = 'base,extras,norm,loc,conf'
 
+# ---------------------------------------------------------------------------- #
+# optimizer options
+# ---------------------------------------------------------------------------- #
+__C.TRAIN.OPTIMIZER = AttrDict()
+# type of the optimizer
+__C.TRAIN.OPTIMIZER.OPTIMIZER = 'sgd'
+# Initial learning rate
+__C.TRAIN.OPTIMIZER.LEARNING_RATE = 0.001
+# Momentum
+__C.TRAIN.OPTIMIZER.MOMENTUM = 0.9
+# Momentum_2
+__C.TRAIN.OPTIMIZER.MOMENTUM_2 = 0.99
+# epsilon
+__C.TRAIN.OPTIMIZER.EPS = 1e-8
+# Weight decay, for regularization
+__C.TRAIN.OPTIMIZER.WEIGHT_DECAY = 0.0001
+
+# ---------------------------------------------------------------------------- #
+# lr_scheduler options
+# ---------------------------------------------------------------------------- #
+__C.TRAIN.LR_SCHEDULER = AttrDict()
+# type of the LR_SCHEDULER
+__C.TRAIN.LR_SCHEDULER.SCHEDULER = 'step'
+# Step size for reducing the learning rate
+__C.TRAIN.LR_SCHEDULER.STEPS = [1]
+# Factor for reducing the learning rate
+__C.TRAIN.LR_SCHEDULER.GAMMA = 0.98
+# warm_up epochs
+__C.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS = 0
+# The number of max iters
+__C.TRAIN.LR_SCHEDULER.MAX_EPOCHS = __C.TRAIN.MAX_EPOCHS - __C.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
 
 # ---------------------------------------------------------------------------- #
 # Test options
@@ -239,6 +251,7 @@ def _merge_a_into_b(a, b, stack=None):
 
 
 def update_cfg():
+    __C.TRAIN.LR_SCHEDULER.MAX_EPOCHS = __C.TRAIN.MAX_EPOCHS - __C.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
     __C.DATASET.IMAGE_SIZE = __C.MODEL.IMAGE_SIZE
     __C.DATASET.TRAIN_BATCH_SIZE = __C.TRAIN.BATCH_SIZE
     __C.DATASET.TEST_BATCH_SIZE = __C.TEST.BATCH_SIZE

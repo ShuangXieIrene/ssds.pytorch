@@ -14,12 +14,12 @@ class Detect(Function):
     confidence score and locations.
     """
     def __init__(self, cfg, priors):
-        self.num_classes = cfg.NUM_CLASSES = 21
-        self.background_label = cfg.BACKGROUND_LABEL = 0
-        self.conf_thresh = cfg.SCORE_THRESHOLD = 0.01
-        self.nms_thresh = cfg.IOU_THRESHOLD = 0.6
+        self.num_classes = cfg.NUM_CLASSES
+        self.background_label = cfg.BACKGROUND_LABEL
+        self.conf_thresh = cfg.SCORE_THRESHOLD
+        self.nms_thresh = cfg.IOU_THRESHOLD 
         self.top_k = cfg.MAX_DETECTIONS 
-        self.variance = cfg.VARIANCE = [0.1, 0.2]
+        self.variance = cfg.VARIANCE
         self.priors = priors
 
     # def forward(self, predictions, prior):

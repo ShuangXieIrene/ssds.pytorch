@@ -38,7 +38,8 @@ class Solver(object):
 
         # Build model
         print('===> Building model')
-        self.model, self.priors = create_model(cfg.MODEL)
+        self.model, self.priorbox = create_model(cfg.MODEL)
+        self.priors = Variable(self.priorbox.forward(), volatile=True)
         self.detector = Detect(cfg.POST_PROCESS, self.priors)
 
         # Utilize GPUs for computation
@@ -61,9 +62,8 @@ class Solver(object):
         # print trainable scope
         # print('Trainable scope:')
         trainable_param = self.trainable_param(cfg.TRAIN.TRAINABLE_SCOPE)
-        self.optimizer = optim.SGD(trainable_param, lr=cfg.TRAIN.LEARNING_RATE,
-                        momentum=cfg.TRAIN.MOMENTUM, weight_decay=cfg.TRAIN.WEIGHT_DECAY)
-        self.exp_lr_scheduler = lr_scheduler.StepLR(self.optimizer, step_size=cfg.TRAIN.STEPSIZE, gamma=cfg.TRAIN.GAMMA)
+        self.optimizer = self.configure_optimizer(trainable_param, cfg.TRAIN.OPTIMIZER)
+        self.exp_lr_scheduler = self.configure_lr_scheduler(self.optimizer, cfg.TRAIN.LR_SCHEDULER)
         self.max_epochs = cfg.TRAIN.MAX_EPOCHS
 
         # metric
@@ -154,11 +154,15 @@ class Solver(object):
 
         # export graph for the model, onnx always not works
         self.export_graph()
-
+        # export prior box
+        self.export_prior_box()
+        # warm_up epoch
+        warm_up = self.cfg.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
         for epoch in iter(range(start_epoch+1, self.max_epochs)):
             #learning rate
             sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.max_epochs))
-            self.exp_lr_scheduler.step(epoch)
+            if epoch > warm_up:
+                self.exp_lr_scheduler.step(epoch-warm_up)
             if 'train' in cfg.PHASE:
                 self.train_epoch(self.model, self.train_loader, self.optimizer, self.criterion, self.writer, epoch, self.use_gpu)
             if 'eval' in cfg.PHASE:
@@ -177,6 +181,10 @@ class Solver(object):
 
         epoch_size = len(data_loader)
         batch_iterator = iter(data_loader)
+        
+        # allow to write the preprocess prgrass in tensorboard
+        # could not work...
+        data_loader.dataset.preproc.add_writer(writer, epoch)
 
         loc_loss = 0
         conf_loss = 0
@@ -368,7 +376,7 @@ class Solver(object):
 
     def test_epoch(self, model, data_loader, detector, output_dir, use_gpu):
         # sys.stdout.write('\r===> Eval mode\n')
-        
+        # result in coco has some problem
         model.eval()
 
         dataset = data_loader.dataset
@@ -421,17 +429,49 @@ class Solver(object):
         with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
             pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
         
+        # currently the COCO dataset do not return the mean ap values
         print('Evaluating detections')
         data_loader.dataset.evaluate_detections(all_boxes, output_dir)
 
+    def configure_optimizer(self, trainable_param, cfg):
+        if cfg.OPTIMIZER == 'sgd':
+            optimizer = optim.SGD(trainable_param, lr=cfg.LEARNING_RATE,
+                        momentum=cfg.MOMENTUM, weight_decay=cfg.WEIGHT_DECAY)
+        elif cfg.OPTIMIZER == 'rmsprop':
+            optimizer = optim.RMSprop(trainable_param, lr=cfg.LEARNING_RATE,
+                        momentum=cfg.MOMENTUM, alpha=cfg.MOMENTUM_2, eps=cfg.EPS, weight_decay=cfg.WEIGHT_DECAY)
+        elif cfg.OPTIMIZER == 'adam':
+            optimizer = optim.Adam(trainable_param, lr=cfg.LEARNING_RATE,
+                        betas=(cfg.MOMENTUM, cfg.MOMENTUM_2), eps=cfg.EPS, weight_decay=cfg.WEIGHT_DECAY)
+        else:
+            AssertionError('optimizer can not be recognized.')
+        return optimizer
+
+    def configure_lr_scheduler(self, optimizer, cfg):
+        if cfg.SCHEDULER == 'step':
+            scheduler = lr_scheduler.StepLR(optimizer, step_size=cfg.STEPS[0], gamma=cfg.GAMMA)
+        elif cfg.SCHEDULER == 'multi_step':
+            scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=cfg.STEPS, gamma=cfg.GAMMA)
+        elif cfg.SCHEDULER == 'exponential':
+            scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=cfg.GAMMA)
+        elif cfg.SCHEDULER == 'SGDR':
+            scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=cfg.MAX_EPOCHS)
+        else:
+            AssertionError('scheduler can not be recognized.')
+        return scheduler
+        
 
     def export_graph(self):
         dummy_input = Variable(torch.randn(10, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
         if not os.path.exists(cfg.EXP_DIR):
             os.makedirs(cfg.EXP_DIR)
-        # torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
-        self.writer.add_graph(self.model, (dummy_input, ))
+        torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
+        # self.writer.add_graph_onnx(self.model)
 
+    def export_prior_box(self):
+        if getattr(self, self.cfg.PHASE[0]+'_loader') is not None:
+            image = getattr(self, self.cfg.PHASE[0]+'_loader').dataset.pull_image(0)
+            self.priorbox.draw_box(self.writer, image)
 
     def draw_pr(self, precision, recall, iter):
         for i, (prec, rec) in enumerate(zip(precision, recall)):
@@ -455,10 +495,10 @@ class Solver(object):
         gt_bbxs = ground_truth[0] * scale
         for gt_bbxs_c in gt_bbxs:
             for bbx in gt_bbxs_c:
-                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 0, 255, 5), 5)
+                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 0, 255), 5)
         for pred_bbxs_c in pred_bbxs:
             for bbx in pred_bbxs_c:
-                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 255, 0, 5), 5)
+                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 255, 0), 5)
         self.writer.add_image(tag, img, iteration)
 
     def predict(self, img):
