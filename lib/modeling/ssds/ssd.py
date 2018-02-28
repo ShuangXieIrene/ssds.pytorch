@@ -132,16 +132,18 @@ class SSD(nn.Module):
                                 break
                 checkpoint = pretrained_dict
 
-            print("=> Weigths in the checkpoints:")
-            print([k for k, v in list(checkpoint.items())])
-
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
-            checkpoint = self.state_dict()
-            checkpoint.update(pretrained_dict) 
-            
             print("=> Resume weigths:")
             print([k for k, v in list(pretrained_dict.items())])
 
+            checkpoint = self.state_dict()
+
+            unresume_dict = set(checkpoint)-set(pretrained_dict)
+            print("=> UNResume weigths:")
+            print(unresume_dict)
+
+            checkpoint.update(pretrained_dict) 
+            
             self.load_state_dict(checkpoint)
 
         else:

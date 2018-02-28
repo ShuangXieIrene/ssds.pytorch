@@ -9,19 +9,21 @@ MODEL:
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  LEARNING_RATE: 0.004
-  MOMENTUM: 0.9
-  WEIGHT_DECAY: 0.0001
-  GAMMA: 0.1
-  STEPSIZE: 100
-  MAX_EPOCHS: 200
+  MAX_EPOCHS: 2
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 128
+  BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
+  OPTIMIZER:
+    OPTIMIZER: sgd
+    LEARNING_RATE: 0.004
+    MOMENTUM: 0.9
+    WEIGHT_DECAY: 0.0001
+  LR_SCHEDULER:
+    SCHEDULER: SGDR
 
 TEST:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 64
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -41,5 +43,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/ssd_vgg16_voc'
 LOG_DIR: './experiments/models/ssd_vgg16_voc'
-RESUME_CHECKPOINT: './weights/ssd/vgg16_ssd_VOC_74.pth'
+RESUME_CHECKPOINT: './weights/ssd/vgg16_ssd_VOC_76.pth'
 PHASE: ['test']

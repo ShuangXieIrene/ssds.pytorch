@@ -46,6 +46,9 @@ __C.MODEL.NETS = 'vgg16'
 # Name of the model used to detect boundingbox
 __C.MODEL.SSDS = 'ssd'
 
+# Whether use half precision for the model. currently only inference support.
+__C.MODEL.HALF_PRECISION = True
+
 # image size for ssd
 __C.MODEL.IMAGE_SIZE = [300, 300]
 
