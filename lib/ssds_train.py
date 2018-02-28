@@ -158,7 +158,7 @@ class Solver(object):
         self.export_prior_box()
         # warm_up epoch
         warm_up = self.cfg.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
-        for epoch in iter(range(start_epoch+1, self.max_epochs)):
+        for epoch in iter(range(start_epoch+1, self.max_epochs+1)):
             #learning rate
             sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.max_epochs))
             if epoch > warm_up:
