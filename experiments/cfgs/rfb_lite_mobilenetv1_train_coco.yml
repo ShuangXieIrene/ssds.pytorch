@@ -12,7 +12,7 @@ TRAIN:
   MAX_EPOCHS: 30
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'loc,conf'
+  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd

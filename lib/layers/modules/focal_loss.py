@@ -3,8 +3,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from lib.utils.box_utils import match, log_sum_exp
+from lib.utils.box_utils import match, log_sum_exp, one_hot_embedding
 
+# I do not fully understand this part, It completely based on https://github.com/kuangliu/pytorch-retinanet/blob/master/loss.py
 
 class FocalLoss(nn.Module):
     """SSD Weighted Loss Function
@@ -33,7 +34,7 @@ class FocalLoss(nn.Module):
         self.variance = cfg.VARIANCE
         self.priors = priors
 
-        self.alpha = Variable(cfg.alpha) # should be num_class * 1
+        self.alpha = Variable(torch.ones(self.num_classes, 1) * cfg.alpha)
         self.gamma = cfg.gamma
 
 
@@ -53,8 +54,7 @@ class FocalLoss(nn.Module):
         priors = self.priors
         # priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
-        num_classes = self.num_classes
-
+        
         # match priors (default boxes) and ground truth boxes
         loc_t = torch.Tensor(num, num_priors, 4)
         conf_t = torch.LongTensor(num, num_priors)
@@ -71,7 +71,7 @@ class FocalLoss(nn.Module):
         conf_t = Variable(conf_t,requires_grad=False)
 
         pos = conf_t > 0
-        # num_pos = pos.sum()
+        num_pos = pos.sum()
 
         # Localization Loss (Smooth L1)
         # Shape: [batch,num_priors,4]
@@ -79,19 +79,34 @@ class FocalLoss(nn.Module):
         loc_p = loc_data[pos_idx].view(-1,4)
         loc_t = loc_t[pos_idx].view(-1,4)
         loss_l = F.smooth_l1_loss(loc_p, loc_t, size_average=False)
+        loss_l/=num_pos.data.sum()
 
-        # Confidence Loss (Smooth L1)
+        # Confidence Loss (Focal loss)
         # Shape: [batch,num_priors,1]
-        pos_neg = conf_t > -1  # exclude ignored anchors
-        mask = pos_neg.unsqueeze(2).expand_as(conf_data)
-        conf_p = conf_data[mask].view(-1,self.num_classes)
+        loss_c = self.focal_loss(conf_data.view(-1, self.num_classes), conf_t.view(-1,1))
 
-        alpha = self.alpha[ids.data.view(-1)]
-        #TODO: fix
-
-        # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
-
-        N = num_pos.data.sum()
-        loss_l/=N
-        loss_c/=N
         return loss_l,loss_c
+
+    def focal_loss(self, inputs, targets):
+        '''Focal loss.
+        mean of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
+        '''
+        N = inputs.size(0)
+        C = inputs.size(1)
+        P = F.softmax(inputs)
+        
+        class_mask = inputs.data.new(N, C).fill_(0)
+        class_mask = Variable(class_mask)
+        ids = targets.view(-1, 1)
+        class_mask.scatter_(1, ids.data, 1.)
+
+        if inputs.is_cuda and not self.alpha.is_cuda:
+            self.alpha = self.alpha.cuda()
+        alpha = self.alpha[ids.data.view(-1)]
+        probs = (P*class_mask).sum(1).view(-1,1)
+        log_p = probs.log()
+
+        batch_loss = -alpha*(torch.pow((1-probs), self.gamma))*log_p 
+
+        loss = batch_loss.mean()
+        return loss

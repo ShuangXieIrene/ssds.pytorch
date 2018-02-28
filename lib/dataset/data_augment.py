@@ -239,7 +239,7 @@ class preproc(object):
 
         # only write the preprocess step for the first image
         if self.writer is not None:
-            print('image adding')
+            # print('image adding')
             self.release_writer()
 
         height, width, _ = image_t.shape

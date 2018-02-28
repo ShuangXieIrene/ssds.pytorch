@@ -465,8 +465,8 @@ class Solver(object):
         dummy_input = Variable(torch.randn(10, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
         if not os.path.exists(cfg.EXP_DIR):
             os.makedirs(cfg.EXP_DIR)
-        torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
-        # self.writer.add_graph_onnx(self.model)
+        # torch.onnx.export(self.model, dummy_input, os.path.join(cfg.EXP_DIR, "graph.pd"))
+        self.writer.add_graph(self.model, (dummy_input, ))
 
     def export_prior_box(self):
         if getattr(self, self.cfg.PHASE[0]+'_loader') is not None:

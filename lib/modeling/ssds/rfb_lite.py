@@ -133,23 +133,23 @@ class RFBLite(nn.Module):
             # assert(False)
             
             # change some names in the dict
-            change_dict = {
-                # 'features':'base',
-                # '.conv.':'.',
-                'Norm': 'norm'
-            }
-            for k, v in list(checkpoint.items()):
-                for _k, _v in list(change_dict.items()):
-                    if _k in k:
-                        new_key = k.replace(_k, _v)
-                        checkpoint[new_key] = checkpoint.pop(k)
-                        break
-            for k, v in list(checkpoint.items()):
-                for _k, _v in list(change_dict.items()):
-                    if _k in k:
-                        new_key = k.replace(_k, _v)
-                        checkpoint[new_key] = checkpoint.pop(k)
-                        break
+            # change_dict = {
+            #     # 'features':'base',
+            #     # '.conv.':'.',
+            #     'Norm': 'norm'
+            # }
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
 
             # extract the weights based on the resume scope
             if resume_scope !='':
