@@ -133,6 +133,7 @@ class RFBLite(nn.Module):
             # assert(False)
             
             # change some names in the dict
+            # change_dict = {'base.{:d}.'.format(i):'base.{:d}.conv.'.format(i) for i in range(20)}
             # change_dict = {
             #     # 'features':'base',
             #     # '.conv.':'.',
@@ -144,6 +145,14 @@ class RFBLite(nn.Module):
             #             new_key = k.replace(_k, _v)
             #             checkpoint[new_key] = checkpoint.pop(k)
             #             break
+            # change_dict = {
+            #     # 'features':'base',
+            #     # '.conv.':'.',
+            #     'base.10': 'base.10.conv',
+            #     'base.11': 'base.11.conv',
+            #     'base.12': 'base.12.conv',
+            #     'base.13': 'base.13.conv',
+            # }
             # for k, v in list(checkpoint.items()):
             #     for _k, _v in list(change_dict.items()):
             #         if _k in k:
@@ -178,6 +187,8 @@ class RFBLite(nn.Module):
             checkpoint.update(pretrained_dict) 
             
             self.load_state_dict(checkpoint)
+
+            # torch.save(self.state_dict(), './weights/changed_mobilenet_v1_coco.pth')
 
         else:
             print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))

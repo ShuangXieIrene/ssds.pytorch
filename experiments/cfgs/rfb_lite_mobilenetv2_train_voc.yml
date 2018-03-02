@@ -4,22 +4,24 @@ MODEL:
   IMAGE_SIZE: [300, 300]
   NUM_CLASSES: 21
   FEATURE_LAYER: [[13, 17, 'RBF', 'S', 'S', 'S'], [96, 320, 512, 256, 256, 128]]
-  STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
-  SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]] #[0.2, 0.95]
+  STEPS: [[16, 16], [32, 32], [64, 64], [100, 100], [150, 150], [300, 300]]
+  SIZES: [[45, 45], [90, 90], [135, 135], [180, 180], [225, 225], [270, 270], [315, 315]]
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  LEARNING_RATE: 0.004
-  MOMENTUM: 0.9
-  WEIGHT_DECAY: 0.0001
-  GAMMA: 0.978
-  STEPSIZE: 100
-  MAX_EPOCHS: 250
+  MAX_EPOCHS: 30
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 96
-  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
+  BATCH_SIZE: 32
+  TRAINABLE_SCOPE: 'loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
-
+  OPTIMIZER:
+    OPTIMIZER: sgd
+    LEARNING_RATE: 0.001
+    MOMENTUM: 0.9
+    WEIGHT_DECAY: 0.0001
+  LR_SCHEDULER:
+    SCHEDULER: SGDR
+    WARM_UP_EPOCHS: 0
 TEST:
   BATCH_SIZE: 48
 
@@ -39,7 +41,7 @@ DATASET:
   TRAIN_SETS: [['2007', 'trainval'], ['2012', 'trainval']]
   TEST_SETS:  [['2007', 'test']]
 
-EXP_DIR: './experiments/models/rfb_mobilenet_v2_2'
-LOG_DIR: './experiments/models/rfb_mobilenet_v2_2'
-RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v2_rfb_lite_epoch_84.pth'
+EXP_DIR: './experiments/models/rfb_mobilenet_v2_voc'
+LOG_DIR: './experiments/models/rfb_mobilenet_v2_voc'
+RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v2_rfb_lite_coco_18.5.pth'
 PHASE: ['train']

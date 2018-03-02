@@ -178,10 +178,10 @@ def add_extras(base, feature_layer, mbox, num_classes):
     in_channels = None
     for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
         if layer == 'S':
-            extra_layers += [ _conv_dw(in_channels, depth, 2, 2) ]
+            extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
             in_channels = depth
         elif layer == '':
-            extra_layers += [ _conv_dw(in_channels, depth, 1, 2) ]
+            extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
             in_channels = depth
         else:
             in_channels = depth
@@ -189,14 +189,16 @@ def add_extras(base, feature_layer, mbox, num_classes):
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (loc_layers, conf_layers)
 
-def _conv_dw(inp, oup, stride, expand_ratio):
+# based on the implementation in https://github.com/tensorflow/models/blob/master/research/object_detection/models/feature_map_generators.py#L213
+# when the expand_ratio is 1, the implemetation is nearly same. Since the shape is always change, I do not add the shortcut as what mobilenetv2 did.
+def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
     return nn.Sequential(
         # pw
         nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
         nn.BatchNorm2d(oup * expand_ratio),
         nn.ReLU6(inplace=True),
         # dw
-        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, 1, groups=oup * expand_ratio, bias=False),
+        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
         nn.BatchNorm2d(oup * expand_ratio),
         nn.ReLU6(inplace=True),
         # pw-linear

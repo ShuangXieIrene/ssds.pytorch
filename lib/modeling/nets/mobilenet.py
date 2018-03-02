@@ -36,39 +36,92 @@ V2_CONV_DEFS = [
     InvertedResidual(stride=1, depth=320, num=1, t=6),
 ]
 
-def _conv_bn(inp, oup, stride):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
-        nn.BatchNorm2d(oup),
-        nn.ReLU(inplace=True)
-    )
+# def _conv_bn(inp, oup, stride):
+#     return nn.Sequential(
+#         nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+#         nn.BatchNorm2d(oup),
+#         nn.ReLU(inplace=True)
+#     )
 
-def _conv_dw(inp, oup, stride):
-    return nn.Sequential(
-        # dw
-        nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
-        nn.BatchNorm2d(inp),
-        nn.ReLU(inplace=True),
-        # pw
-        nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-        nn.ReLU(inplace=True),
-    )
+# def _conv_dw(inp, oup, stride):
+#     return nn.Sequential(
+#         # dw
+#         nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+#         nn.BatchNorm2d(inp),
+#         nn.ReLU(inplace=True),
+#         # pw
+#         nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+#         nn.BatchNorm2d(oup),
+#         nn.ReLU(inplace=True),
+#     )
 
-def _inverted_residual_bottleneck(inp, oup, stride, expand_ratio):
-    return nn.Sequential(
-        # pw
-        nn.Conv2d(inp, inp * expand_ratio, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(inp * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # dw
-        nn.Conv2d(inp * expand_ratio, inp * expand_ratio, 3, stride, 1, groups=inp * expand_ratio, bias=False),
-        nn.BatchNorm2d(inp * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # pw-linear
-        nn.Conv2d(inp * expand_ratio, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-    )
+# def _inverted_residual_bottleneck(inp, oup, stride, expand_ratio):
+#     return nn.Sequential(
+#         # pw
+#         nn.Conv2d(inp, inp * expand_ratio, 1, 1, 0, bias=False),
+#         nn.BatchNorm2d(inp * expand_ratio),
+#         nn.ReLU6(inplace=True),
+#         # dw
+#         nn.Conv2d(inp * expand_ratio, inp * expand_ratio, 3, stride, 1, groups=inp * expand_ratio, bias=False),
+#         nn.BatchNorm2d(inp * expand_ratio),
+#         nn.ReLU6(inplace=True),
+#         # pw-linear
+#         nn.Conv2d(inp * expand_ratio, oup, 1, 1, 0, bias=False),
+#         nn.BatchNorm2d(oup),
+#     )
+
+class _conv_bn(nn.Module):
+    def __init__(self, inp, oup, stride):
+        super(_conv_bn, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True),
+        )
+    def forward(self, x):
+        return self.conv(x)
+
+
+class _conv_dw(nn.Module):
+    def __init__(self, inp, oup, stride):
+        super(_conv_dw, self).__init__()
+        self.conv = nn.Sequential(
+            # dw
+            nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+            nn.BatchNorm2d(inp),
+            nn.ReLU(inplace=True),
+            # pw
+            nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(oup),
+            nn.ReLU(inplace=True),
+        )
+    def forward(self, x):
+        return self.conv(x)
+
+
+class _inverted_residual_bottleneck(nn.Module):
+    def __init__(self, inp, oup, stride, expand_ratio):
+        super(_inverted_residual_bottleneck, self).__init__()
+        self.use_res_connect = stride == 1 and inp == oup
+        self.conv = nn.Sequential(
+            # pw
+            nn.Conv2d(inp, inp * expand_ratio, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(inp * expand_ratio),
+            nn.ReLU6(inplace=True),
+            # dw
+            nn.Conv2d(inp * expand_ratio, inp * expand_ratio, 3, stride, 1, groups=inp * expand_ratio, bias=False),
+            nn.BatchNorm2d(inp * expand_ratio),
+            nn.ReLU6(inplace=True),
+            # pw-linear
+            nn.Conv2d(inp * expand_ratio, oup, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(oup),
+        )
+    def forward(self, x):
+        if self.use_res_connect:
+            return x + self.conv(x)
+        else:
+            return self.conv(x)
+
 
 def mobilenet(conv_defs, depth_multiplier=1.0, min_depth=8):
     depth = lambda d: max(int(d * depth_multiplier), min_depth)

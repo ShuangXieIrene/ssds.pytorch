@@ -9,7 +9,7 @@ MODEL:
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 50
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
@@ -25,7 +25,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 48
-  TEST_SCOPE: [91, 100]
+  TEST_SCOPE: [100, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -46,5 +46,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/rfb_mobilenet_v2_coco'
 LOG_DIR: './experiments/models/rfb_mobilenet_v2_coco'
-RESUME_CHECKPOINT: './weights/mobilenetv2.pth'
-PHASE: ['test']
+RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v2_rfb_lite_coco_18.5.pth'
+PHASE: ['train']
