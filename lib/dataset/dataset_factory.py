@@ -51,7 +51,7 @@ def detection_collate(batch):
 
     return (torch.stack(imgs, 0), targets)
 
-from .data_augment import preproc
+from lib.utils.data_augment import preproc
 import torch.utils.data as data
 
 def load_data(cfg, phase):

@@ -35,22 +35,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-# def main():
-#     # parse args from the  confg_file
-#     args = parse_args()
-#     if args.confg_file is not None:
-#         cfg_from_file(args.config_file)
-
-#     # Load data
-#     train_loader = load_data(cfg.DATASET, 'train')
-#     test_loader = load_data(cfg.DATASET, 'test')
-
-#     model, priors = create_model(cfg.MODEL)
-
-#     if 
-
-    
-
 def train():
     args = parse_args()
     if args.config_file is not None:

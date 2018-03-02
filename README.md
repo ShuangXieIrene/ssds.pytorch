@@ -24,7 +24,8 @@ This repo is depended on the work of [ssd.pytorch](https://github.com/amdegroot/
 ## Performance
 
 ## TODO
-- finished the test part
+- test the multi-resolution traning
+- try rotation
 - test ssd-lite, fssd
 - test focal loss
 - add resnet, xception, inception

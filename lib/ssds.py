@@ -7,7 +7,7 @@ import torch.backends.cudnn as cudnn
 
 from lib.layers import *
 from lib.utils.timer import Timer
-from lib.dataset.data_augment import preproc
+from lib.utils.data_augment import preproc
 from lib.modeling.model_builder import create_model
 from lib.utils.config_parse import cfg
 from lib.utils.fp16_utils import BN_convert_float

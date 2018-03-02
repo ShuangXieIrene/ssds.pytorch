@@ -4,19 +4,15 @@ Dataset classes.
 The data augmentation procedures were interpreted from @weiliu89's SSD paper
 http://arxiv.org/abs/1512.02325
 
-TODO: implement data_augment for training
-
 Ellis Brown, Max deGroot
 """
 
 import torch
-from torchvision import transforms
 import cv2
 import numpy as np
 import random
 import math
 from lib.utils.box_utils import matrix_iou
-# import torch_transforms
 
 def _crop(image, boxes, labels):
     height, width, _ = image.shape
@@ -155,6 +151,33 @@ def _mirror(image, boxes):
     return image, boxes
 
 
+def _elastic(image, p, alpha=None, sigma=None, random_state=None):
+    """Elastic deformation of images as described in [Simard2003]_ (with modifications).
+    .. [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
+         Convolutional Neural Networks applied to Visual Document Analysis", in
+         Proc. of the International Conference on Document Analysis and
+         Recognition, 2003.
+     Based on https://gist.github.com/erniejunior/601cdf56d2b424757de5
+     From: 
+     https://www.kaggle.com/bguberfain/elastic-transform-for-data-augmentation
+    """
+    if random.random() > p:
+        return image
+    if alpha == None:
+        alpha = image.shape[0] * random.uniform(0.5,2)
+    if sigma == None:
+        sigma = int(image.shape[0] * random.uniform(0.5,1))
+    if random_state is None:
+        random_state = np.random.RandomState(None)
+
+    shape = image.shape[:2]
+    
+    dx, dy = [cv2.GaussianBlur((random_state.rand(*shape) * 2 - 1) * alpha, (sigma|1, sigma|1), 0) for _ in range(2)]
+    x, y = np.meshgrid(np.arange(shape[1]), np.arange(shape[0]))
+    x, y = np.clip(x+dx, 0, shape[1]-1).astype(np.float32), np.clip(y+dy, 0, shape[0]-1).astype(np.float32)
+    return cv2.remap(image, x, y, interpolation=cv2.INTER_LINEAR, borderValue= 0, borderMode=cv2.BORDER_REFLECT)
+
+
 def preproc_for_test(image, insize, mean):
     interp_methods = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_NEAREST, cv2.INTER_LANCZOS4]
     interp_method = interp_methods[random.randrange(5)]
@@ -226,6 +249,11 @@ class preproc(object):
         if self.writer is not None:
             image_show = draw_bbox(image_t, boxes)
             self.writer.add_image('preprocess/distort_image', image_show, self.epoch)
+        
+        image_t = _elastic(image_t, self.p)
+        if self.writer is not None:
+            image_show = draw_bbox(image_t, boxes)
+            self.writer.add_image('preprocess/elastic_image', image_show, self.epoch)
 
         image_t, boxes = _expand(image_t, boxes, self.means, self.p)
         if self.writer is not None:
@@ -268,36 +296,3 @@ class preproc(object):
     
     def release_writer(self):
         self.writer = None
-
-
-
-class BaseTransform(object):
-    """Defines the transformations that should be applied to test PIL image
-        for input into the network
-
-    dimension -> tensorize -> color adj
-
-    Arguments:
-        resize (int): input dimension to SSD
-        rgb_means ((int,int,int)): average RGB of the dataset
-            (104,117,123)
-        swap ((int,int,int)): final order of channels
-    Returns:
-        transform (transform) : callable transform to be applied to test/val
-        data
-    """
-    def __init__(self, resize, rgb_means, swap=(2, 0, 1)):
-        self.means = rgb_means
-        self.resize = resize
-        self.swap = swap
-
-    # assume input is cv2 img for now
-    def __call__(self, img):
-
-        interp_methods = [cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_AREA, cv2.INTER_NEAREST, cv2.INTER_LANCZOS4]
-        interp_method = interp_methods[0]
-        img = cv2.resize(np.array(img), (self.resize[0],
-                                         self.resize[1]),interpolation = interp_method).astype(np.float32)
-        img -= self.means
-        img = img.transpose(self.swap)
-        return torch.from_numpy(img)

@@ -128,6 +128,7 @@ __C.TRAIN.LR_SCHEDULER.MAX_EPOCHS = __C.TRAIN.MAX_EPOCHS - __C.TRAIN.LR_SCHEDULE
 # ---------------------------------------------------------------------------- #
 __C.TEST = AttrDict()
 __C.TEST.BATCH_SIZE = __C.TRAIN.BATCH_SIZE
+__C.TEST.TEST_SCOPE = [0, 300]
 
 
 # ---------------------------------------------------------------------------- #

@@ -9,21 +9,23 @@ MODEL:
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 70
+  MAX_EPOCHS: 100
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.004
+    LEARNING_RATE: 0.001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
+    WARM_UP_EPOCHS: 70
 
 TEST:
   BATCH_SIZE: 48
+  TEST_SCOPE: [91, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -45,4 +47,4 @@ DATASET:
 EXP_DIR: './experiments/models/rfb_mobilenet_v2_coco'
 LOG_DIR: './experiments/models/rfb_mobilenet_v2_coco'
 RESUME_CHECKPOINT: './weights/mobilenetv2.pth'
-PHASE: ['train']
+PHASE: ['test']

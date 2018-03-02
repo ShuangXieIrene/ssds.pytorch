@@ -30,9 +30,9 @@ class FSSD(nn.Module):
         # SSD network
         self.base = nn.ModuleList(base)
         self.extras = nn.ModuleList(extras)
-        self.feature_layer = feature_layer
-        self.transforms = features[0]
-        self.pyramids = features[1]
+        self.feature_layer = feature_layer[0][0]
+        self.transforms = nn.ModuleList(features[0])
+        self.pyramids = nn.ModuleList(features[1])
         # print(self.base)
         # Layer learns to scale the l2 normalized features from conv4_3
         self.norm = nn.BatchNorm2d(256*len(self.transforms),affine=True)
@@ -117,10 +117,39 @@ class FSSD(nn.Module):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
 
+
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
+
             # remove the module in the parrallel model
             if 'module.' in list(checkpoint.items())[0][0]: 
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
                 checkpoint = pretrained_dict   
+
+            # print([k for k, v in list(checkpoint.items())])
+            # assert(False)
+            
+            # change some names in the dict
+            # change_dict = {
+            #     'ft_module.2':'ft_module.3',
+            # }
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
+            # change_dict = {
+            #     'ft_module':'transforms',
+            #     'pyramid_ext':'pyramids',
+            #     'fea_bn': 'norm'
+            # }
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k in k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            #             break
 
             # extract the weights based on the resume scope
             if resume_scope !='':
@@ -134,13 +163,20 @@ class FSSD(nn.Module):
                             if resume_key in k:
                                 pretrained_dict[k] = v
                                 break
-                checkpoint = pretrained_dict         
+                checkpoint = pretrained_dict
 
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
-            checkpoint = self.state_dict()
-            checkpoint.update(pretrained_dict) 
-            # print([k for k, v in list(checkpoint.items())])
+            print("=> Resume weigths:")
+            print([k for k, v in list(pretrained_dict.items())])
 
+            checkpoint = self.state_dict()
+
+            unresume_dict = set(checkpoint)-set(pretrained_dict)
+            print("=> UNResume weigths:")
+            print(unresume_dict)
+
+            checkpoint.update(pretrained_dict) 
+            
             self.load_state_dict(checkpoint)
 
         else:
@@ -174,7 +210,6 @@ class FSSD(nn.Module):
         for k, v in enumerate(self.pyramids):
             x = v(x)
             pyramids.append(x)
-        print([(o.size()[2], o.size()[3]) for o in pyramids])
         return [(o.size()[2], o.size()[3]) for o in pyramids]
 
 
@@ -199,42 +234,44 @@ class BasicConv(nn.Module):
             # x = self.up_sample(x)
         return x
 
-def add_extras(base, feature_layer, layer_depth, mbox, num_classes, num_fused):
+def add_extras(base, feature_layer, mbox, num_classes):
     extra_layers = []
     feature_transform_layers = []
     pyramid_feature_layers = []
     loc_layers = []
     conf_layers = []
     in_channels = None
-    feature_transform_channel = 256
-    feature_in_channels = num_fused * feature_transform_channel
-    for i, (layer, depth, box) in enumerate(zip(feature_layer, layer_depth, mbox)):
+    feature_transform_channel = int(feature_layer[0][1][-1]/2)
+    for layer, depth in zip(feature_layer[0][0], feature_layer[0][1]):
         if layer == 'S':
-            if i < num_fused:
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
-            pyramid_feature_layers += [BasicConv(feature_in_channels, depth, kernel_size=3,stride=2,padding=1)]
+            extra_layers += [
+                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
             in_channels = depth
-            feature_in_channels = depth
         elif layer == '':
-            if i < num_fused:
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
-            pyramid_feature_layers += [BasicConv(feature_in_channels, depth, kernel_size=3,stride=1,padding=1)]
+            extra_layers += [
+                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
             in_channels = depth
-            feature_in_channels = depth
         else:
-            pyramid_feature_layers += [BasicConv(feature_in_channels,2*feature_transform_channel,kernel_size=3,stride=(1,2)[i!=0],padding=1)]
             in_channels = depth
-            feature_in_channels = 2*feature_transform_channel
-        if i < num_fused:
-            feature_transform_layers += [BasicConv(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
-        loc_layers += [nn.Conv2d(feature_in_channels, box * 4, kernel_size=3, padding=1)]
-        conf_layers += [nn.Conv2d(feature_in_channels, box * num_classes, kernel_size=3, padding=1)]
+        feature_transform_layers += [BasicConv(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
+    
+    in_channels = len(feature_transform_layers) * feature_transform_channel
+    for layer, depth, box in zip(feature_layer[1][0], feature_layer[1][1], mbox):
+        if layer == 'S':
+            pyramid_feature_layers += [BasicConv(in_channels, depth, kernel_size=3, stride=2, padding=1)]
+            in_channels = depth
+        elif layer == '':
+            pad = (0,1)[len(pyramid_feature_layers)==0]
+            pyramid_feature_layers += [BasicConv(in_channels, depth, kernel_size=3, stride=1, padding=pad)]
+            in_channels = depth
+        else:
+            AssertionError('Undefined layer')
+        loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
+        conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (feature_transform_layers, pyramid_feature_layers), (loc_layers, conf_layers)
 
-def build_fssd(base, feature_layer, layer_depth, mbox, num_classes, num_fused=3):
-    base_, extras_, features_, head_ = add_extras(base(), feature_layer, layer_depth, mbox, num_classes, num_fused)
+def build_fssd(base, feature_layer, mbox, num_classes):
+    base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
     return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)

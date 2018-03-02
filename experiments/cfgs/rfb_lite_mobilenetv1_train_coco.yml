@@ -25,6 +25,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 64
+  TEST_SCOPE: [45, 50]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -46,4 +47,4 @@ DATASET:
 EXP_DIR: './experiments/models/rfb_mobilenet_v1_coco'
 LOG_DIR: './experiments/models/rfb_mobilenet_v1_coco'
 RESUME_CHECKPOINT: './weights/RFB_mobile_20_7.pth'
-PHASE: ['train']
+PHASE: ['test']

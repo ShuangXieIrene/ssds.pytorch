@@ -17,7 +17,7 @@ from tensorboardX import SummaryWriter
 from lib.layers import *
 from lib.utils.timer import Timer
 from lib.utils.nms.nms_wrapper import nms
-from lib.dataset.data_augment import preproc, BaseTransform
+from lib.utils.data_augment import preproc
 from lib.modeling.model_builder import create_model
 from lib.dataset.dataset_factory import load_data
 from lib.utils.config_parse import cfg
@@ -102,10 +102,13 @@ class Solver(object):
             return False
         with open(os.path.join(self.output_dir, 'checkpoint_list.txt'), 'r') as f:
             lineList = f.readlines()
-        line = lineList[-1]
-        start_epoch = int(line[line.find('epoch ') + len('epoch '): line.find(':')])
-        resume_checkpoint = line[line.find(':') + 2:-1]
-        return start_epoch, resume_checkpoint
+        epoches, resume_checkpoints = [list() for _ in range(2)]
+        for line in lineList:
+            epoch = int(line[line.find('epoch ') + len('epoch '): line.find(':')])
+            checkpoint = line[line.find(':') + 2:-1]
+            epoches.append(epoch)
+            resume_checkpoints.append(checkpoint)
+        return epoches, resume_checkpoints
 
     def weights_init(self, m):
         for key in m.state_dict():
@@ -147,13 +150,13 @@ class Solver(object):
     def train_model(self):
         previous = self.find_previous()
         if previous:
-            start_epoch = previous[0]
-            self.restore_checkpoint(previous[1])
+            start_epoch = previous[0][-1]
+            self.restore_checkpoint(previous[1][-1])
         else:
             start_epoch = self.initialize()
 
         # export graph for the model, onnx always not works
-        self.export_graph()
+        # self.export_graph()
         # export prior box
         self.export_prior_box()
         # warm_up epoch
@@ -172,6 +175,25 @@ class Solver(object):
 
             if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 self.save_checkpoints(epoch)
+
+    def test_model(self):
+        previous = self.find_previous()
+        if previous:
+            for epoch, resume_checkpoint in zip(previous[0], previous[1]):
+                if self.cfg.TEST.TEST_SCOPE[0] <= epoch <= self.cfg.TEST.TEST_SCOPE[1]:
+                    sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.cfg.TEST.TEST_SCOPE[1]))
+                    self.restore_checkpoint(resume_checkpoint)
+                    if 'eval' in cfg.PHASE:
+                        self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
+                    if 'test' in cfg.PHASE:
+                        self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
+        else:
+            sys.stdout.write('\rCheckpoint {}:\n'.format(self.resume_checkpoint))
+            self.restore_checkpoint(self.resume_checkpoint)
+            if 'eval' in cfg.PHASE:
+                self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
+            if 'test' in cfg.PHASE:
+                self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
 
 
     def train_epoch(self, model, data_loader, optimizer, criterion, writer, epoch, use_gpu):
@@ -269,7 +291,7 @@ class Solver(object):
             _t.tic()
             # forward
             out = model(images, is_train=True)
-
+            
             # loss
             loss_l, loss_c = criterion(out, targets)
 
@@ -506,6 +528,11 @@ class Solver(object):
 
 
 def train_model():
-    sw = Solver()
-    sw.train_model()
+    s = Solver()
+    s.train_model()
+    return True
+
+def test_model():
+    s = Solver()
+    s.test_model()
     return True
