@@ -55,9 +55,9 @@ class Solver(object):
         # Print the model architecture and parameters
         print('Model architectures:\n{}\n'.format(self.model))
 
-        print('Parameters and size:')
-        for name, param in self.model.named_parameters():
-            print('{}: {}'.format(name, list(param.size())))
+        # print('Parameters and size:')
+        # for name, param in self.model.named_parameters():
+        #     print('{}: {}'.format(name, list(param.size())))
 
         # print trainable scope
         # print('Trainable scope:')

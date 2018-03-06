@@ -1,31 +1,30 @@
 MODEL:
-  SSDS: fssd
-  NETS: vgg16
+  SSDS: ssd
+  NETS: resnet_101
   IMAGE_SIZE: [300, 300]
   NUM_CLASSES: 81
-  FEATURE_LAYER: [[[22, 34, 'S'], [512, 1024, 512]],
-                  [['', 'S', 'S', 'S', '', ''], [512, 512, 256, 256, 256, 256]]]
+  FEATURE_LAYER: [[10, 33, 'S', 'S', '', ''], [512, 1024, 512, 256, 256, 256]]
   STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
   SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]]
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 30
+  MAX_EPOCHS: 10
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'base,norm,extras,transforms,pyramids,loc,conf'
-  RESUME_SCOPE: 'base,norm,extras,transforms,pyramids,loc,conf'
+  TRAINABLE_SCOPE: 'norm,extras,loc,conf'
+  RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
-    OPTIMIZER: sgd
+    OPTIMIZER: adam
     LEARNING_RATE: 0.004
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
+    WARM_UP_EPOCHS: 4
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [27, 30]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -44,7 +43,7 @@ DATASET:
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/fssd_vgg16_coco'
-LOG_DIR: './experiments/models/fssd_vgg16_coco'
-RESUME_CHECKPOINT: './weights/FSSD_vgg_VOC_epoches_270.pth'
-PHASE: ['test']
+EXP_DIR: './experiments/models/ssd_resnet101_coco'
+LOG_DIR: './experiments/models/ssd_resnet101_coco'
+RESUME_CHECKPOINT: './weights/resnet101-5d3b4d8f.pth'
+PHASE: ['train']

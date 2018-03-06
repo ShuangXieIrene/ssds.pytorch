@@ -75,8 +75,9 @@ class SSDLite(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = F.relu(v(x), inplace=True)
-            if k % 2 == 1:
-                sources.append(x)
+            sources.append(x)
+            # if k % 2 == 1:
+            #     sources.append(x)
 
         # apply multibox head to source layers
         for (x, l, c) in zip(sources, self.loc, self.conf):
@@ -103,6 +104,9 @@ class SSDLite(nn.Module):
         if os.path.isfile(resume_checkpoint):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
+
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
 
             # remove the module in the parrallel model
             if 'module.' in list(checkpoint.items())[0][0]: 
@@ -133,16 +137,18 @@ class SSDLite(nn.Module):
                                 break
                 checkpoint = pretrained_dict
 
-            print("=> Weigths in the checkpoints:")
-            print([k for k, v in list(checkpoint.items())])
-
             pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
-            checkpoint = self.state_dict()
-            checkpoint.update(pretrained_dict) 
-            
             print("=> Resume weigths:")
             print([k for k, v in list(pretrained_dict.items())])
 
+            checkpoint = self.state_dict()
+
+            unresume_dict = set(checkpoint)-set(pretrained_dict)
+            print("=> UNResume weigths:")
+            print(unresume_dict)
+
+            checkpoint.update(pretrained_dict) 
+            
             self.load_state_dict(checkpoint)
 
         else:
@@ -166,8 +172,9 @@ class SSDLite(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = F.relu(v(x), inplace=True)
-            if k % 2 == 1:
-                sources.append(x)
+            sources.append(x)
+            # if k % 2 == 1:
+            #     sources.append(x)
 
         return [(o.size()[2], o.size()[3]) for o in sources]
 
@@ -206,6 +213,6 @@ def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
         nn.BatchNorm2d(oup),
     )
 
-def build_ssd(base, feature_layer, mbox, num_classes):
+def build_ssd_lite(base, feature_layer, mbox, num_classes):
     base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
     return SSDLite(base_, extras_, head_, feature_layer, num_classes)

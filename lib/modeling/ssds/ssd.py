@@ -29,7 +29,7 @@ class SSD(nn.Module):
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
-        self.norm = L2Norm(512, 20)
+        self.norm = L2Norm(feature_layer[1][0], 20)
         self.extras = nn.ModuleList(extras)
 
         self.loc = nn.ModuleList(head[0])
@@ -103,6 +103,9 @@ class SSD(nn.Module):
             print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
             checkpoint = torch.load(resume_checkpoint)
 
+            print("=> Weigths in the checkpoints:")
+            print([k for k, v in list(checkpoint.items())])
+
             # remove the module in the parrallel model
             if 'module.' in list(checkpoint.items())[0][0]: 
                 pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
@@ -110,8 +113,23 @@ class SSD(nn.Module):
 
             # change L2Norm to norm
             # change_dict = {
-            #     'Norm':'norm',
-            # }
+            #         'conv1.weight':'base.0.weight', 
+            #         'bn1.running_mean':'base.1.running_mean', 
+            #         'bn1.running_var':'base.1.running_var',
+            #         'bn1.bias':'base.1.bias',
+            #         'bn1.weight':'base.1.weight',
+            #         }
+            # for k, v in list(checkpoint.items()):
+            #     for _k, _v in list(change_dict.items()):
+            #         if _k == k:
+            #             new_key = k.replace(_k, _v)
+            #             checkpoint[new_key] = checkpoint.pop(k)
+            # change_dict = {'layer1.{:d}.'.format(i):'base.{:d}.'.format(i+4) for i in range(20)}
+            # change_dict.update({'layer2.{:d}.'.format(i):'base.{:d}.'.format(i+7) for i in range(20)})
+            # change_dict.update({'layer3.{:d}.'.format(i):'base.{:d}.'.format(i+11) for i in range(30)})
+            # # change_dict = {
+            # #     'Norm':'norm',
+            # # }
             # for k, v in list(checkpoint.items()):
             #     for _k, _v in list(change_dict.items()):
             #         if _k in k:

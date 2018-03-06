@@ -1,12 +1,14 @@
 
 # ssds part
 from lib.modeling.ssds import ssd
+from lib.modeling.ssds import ssd_lite
 from lib.modeling.ssds import rfb
-from lib.modeling.ssds import fssd
 from lib.modeling.ssds import rfb_lite
+from lib.modeling.ssds import fssd
 
 ssds_map = {
                 'ssd': ssd.build_ssd,
+                'ssd_lite': ssd_lite.build_ssd_lite,
                 'rfb': rfb.build_rfb,
                 'rfb_lite': rfb_lite.build_rfb_lite,
                 'fssd': fssd.build_fssd,
@@ -14,10 +16,12 @@ ssds_map = {
 
 # nets part
 from lib.modeling.nets import vgg
+from lib.modeling.nets import resnet
 from lib.modeling.nets import mobilenet
 
 networks_map = {
                     'vgg16': vgg.vgg16,
+                    'resnet_101': resnet.resnet_101,
                     'mobilenet_v1': mobilenet.mobilenet_v1,
                     'mobilenet_v1_075': mobilenet.mobilenet_v1_075,
                     'mobilenet_v1_050': mobilenet.mobilenet_v1_050,

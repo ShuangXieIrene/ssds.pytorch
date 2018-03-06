@@ -24,9 +24,10 @@ This repo is depended on the work of [ssd.pytorch](https://github.com/amdegroot/
 ## Performance
 
 ## TODO
+- add DSSDs: DSSD FPN TDM
 - test the multi-resolution traning
 - try rotation
-- test ssd-lite, fssd
+- test ssd-lite
 - test focal loss
 - add resnet, xception, inception
 - figure out the problem of visualize image in training, visualize graph, and visualize pr curve
