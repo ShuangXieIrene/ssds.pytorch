@@ -7,6 +7,27 @@ import functools
 BasicBlock = namedtuple('BasicBlock', ['stride', 'depth', 'num', 't'])
 Bottleneck = namedtuple('Bottleneck', ['stride', 'depth', 'num', 't']) # t is the expension factor
 
+V18_CONV_DEFS = [
+    BasicBlock(stride=1, depth=64, num=2, t=1),
+    BasicBlock(stride=2, depth=128, num=2, t=1),
+    BasicBlock(stride=2, depth=256, num=2, t=1),
+    # BasicBlock(stride=2, depth=512, num=2, t=1),
+]
+
+V34_CONV_DEFS = [
+    BasicBlock(stride=1, depth=64, num=3, t=1),
+    BasicBlock(stride=2, depth=128, num=4, t=1),
+    BasicBlock(stride=2, depth=256, num=6, t=1),
+    # BasicBlock(stride=2, depth=512, num=3, t=1),
+]
+
+V50_CONV_DEFS = [
+    Bottleneck(stride=1, depth=64, num=3, t=4),
+    Bottleneck(stride=2, depth=128, num=4, t=4),
+    Bottleneck(stride=2, depth=256, num=6, t=4),
+    # Bottleneck(stride=2, depth=512, num=3, t=4),
+]
+
 V101_CONV_DEFS = [
     Bottleneck(stride=1, depth=64, num=3, t=4),
     Bottleneck(stride=2, depth=128, num=4, t=4),
@@ -116,4 +137,8 @@ def wrapped_partial(func, *args, **kwargs):
     functools.update_wrapper(partial_func, func)
     return partial_func
 
+resnet_18 = wrapped_partial(resnet, conv_defs=V18_CONV_DEFS, depth_multiplier=1.0)
+resnet_34 = wrapped_partial(resnet, conv_defs=V34_CONV_DEFS, depth_multiplier=1.0)
+
+resnet_50 = wrapped_partial(resnet, conv_defs=V50_CONV_DEFS, depth_multiplier=1.0)
 resnet_101 = wrapped_partial(resnet, conv_defs=V101_CONV_DEFS, depth_multiplier=1.0)

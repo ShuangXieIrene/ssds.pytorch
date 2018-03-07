@@ -12,8 +12,8 @@ TRAIN:
   MAX_EPOCHS: 20
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'extras'
-  RESUME_SCOPE: 'base,norm,loc,conf'
+  TRAINABLE_SCOPE: 'norm,extras,loc,conf'
+  RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: adam
     LEARNING_RATE: 0.004
