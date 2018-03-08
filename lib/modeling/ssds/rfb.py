@@ -8,7 +8,18 @@ import os
 from lib.layers import *
 
 class RFB(nn.Module):
+    """Receptive Field Block Net for Accurate and Fast Object Detection
+    See: https://arxiv.org/pdf/1711.07767.pdf for more details.
 
+    Args:
+        phase: (string) Can be "eval" or "train" or "feature"
+        base: base layers for input
+        extras: extra layers that feed to multibox loc and conf layers
+        norm: norm to add RFB module for previous feature extractor
+        head: "multibox head" consists of loc and conf conv layers
+        feature_layer: the feature layers for head to loc and conf
+        num_classes: num of classes 
+    """
     def __init__(self, base, extras, norm, head, feature_layer, num_classes):
         super(RFB, self).__init__()
         self.num_classes = num_classes
@@ -33,7 +44,7 @@ class RFB(nn.Module):
 
 
 
-    def forward(self, x, is_train = False):
+    def forward(self, x, phase='eval'):
         """Applies network layers and ops on input image(s) x.
 
         Args:
@@ -50,7 +61,9 @@ class RFB(nn.Module):
                 list of concat outputs from:
                     1: confidence layers, Shape: [batch*num_priors,num_classes]
                     2: localization layers, Shape: [batch,num_priors*4]
-                    3: priorbox layers, Shape: [2,num_priors*4]
+
+            feature:
+                the features maps of the feature extractor
         """
         sources = list()
         loc = list()
@@ -74,16 +87,17 @@ class RFB(nn.Module):
             if k < self.indicator or k % 2 == 1:
                 sources.append(x)
 
-        # print([o.size() for o in sources])
+        if phase == 'feature':
+            return sources
+
         # apply multibox head to source layers
         for (x, l, c) in zip(sources, self.loc, self.conf):
             loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             conf.append(c(x).permute(0, 2, 3, 1).contiguous())
-        # print([o.size() for o in loc])
         loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
         conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
 
-        if is_train == False:
+        if phase == 'eval':
             output = (
                 loc.view(loc.size(0), -1, 4),                   # loc preds
                 self.softmax(conf.view(-1, self.num_classes)),  # conf preds
@@ -92,86 +106,9 @@ class RFB(nn.Module):
             output = (
                 loc.view(loc.size(0), -1, 4),
                 conf.view(conf.size(0), -1, self.num_classes),
-                #self.priors
             )
         return output
-    
-    def _forward_features_size(self, img_size):
-        x = torch.rand(1, 3, img_size[0], img_size[1])
-        x = torch.autograd.Variable(x, volatile=True).cuda()
-        sources = list()
-        self.eval()
-        # apply bases layers and cache source layer outputs
-        for k in range(len(self.base)):
-            x = self.base[k](x)
-            if k in self.feature_layer:
-                idx = self.feature_layer.index(k)
-                sources.append(self.norm[idx](x))
-
-        # apply extra layers and cache source layer outputs
-        for k, v in enumerate(self.extras):
-            x = v(x)
-            if k < self.indicator or k % 2 == 1:
-                sources.append(x)
-
-        return [(o.size()[2], o.size()[3]) for o in sources]
-
-    def load_weights(self, resume_checkpoint, resume_scope=''):
-        if os.path.isfile(resume_checkpoint):
-            print(("=> loading checkpoint '{}'".format(resume_checkpoint)))
-            checkpoint = torch.load(resume_checkpoint)
-
-            # remove the module in the parrallel model
-            if 'module.' in list(checkpoint.items())[0][0]: 
-                pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
-                checkpoint = pretrained_dict   
-
-            # change some names in the dict
-            # change_dict = {
-            #     'Norm':'norm.0',
-            #     'extras.0':'norm.1',
-            #     'extras.1':'extras.0',
-            #     'extras.2':'extras.1',
-            #     'extras.3':'extras.2',
-            #     'extras.4':'extras.3',
-            #     'extras.5':'extras.4',
-            #     'extras.6':'extras.5',
-            # }
-            # for k, v in list(checkpoint.items()):
-            #     for _k, _v in list(change_dict.items()):
-            #         if _k in k:
-            #             new_key = k.replace(_k, _v)
-            #             checkpoint[new_key] = checkpoint.pop(k)
-            # print([k for k, v in list(checkpoint.items())])
-            # extract the weights based on the resume scope
-            if resume_scope !='':
-                pretrained_dict = {}
-                if resume_scope == 'classfication':
-                    # TODO: load weight from pretrain classification
-                    print('TODO: load weight from pretrain classification')
-                else:
-                    for k, v in list(checkpoint.items()):
-                        for resume_key in resume_scope.split(','):
-                            if resume_key in k:
-                                pretrained_dict[k] = v
-                                break
-                checkpoint = pretrained_dict
-
-            print("=> Weigths in the checkpoints:")
-            print([k for k, v in list(checkpoint.items())])
-
-            pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.state_dict()}
-            checkpoint = self.state_dict()
-            checkpoint.update(pretrained_dict) 
-            
-            print("=> Resume weigths:")
-            print([k for k, v in list(pretrained_dict.items())])
-
-            self.load_state_dict(checkpoint)
-
-        else:
-            print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
-
+        
 
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True, bn=True, bias=False):

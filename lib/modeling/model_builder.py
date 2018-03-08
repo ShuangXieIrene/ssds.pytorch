@@ -5,6 +5,7 @@ from lib.modeling.ssds import ssd_lite
 from lib.modeling.ssds import rfb
 from lib.modeling.ssds import rfb_lite
 from lib.modeling.ssds import fssd
+from lib.modeling.ssds import fssd_lite
 
 ssds_map = {
                 'ssd': ssd.build_ssd,
@@ -12,6 +13,7 @@ ssds_map = {
                 'rfb': rfb.build_rfb,
                 'rfb_lite': rfb_lite.build_rfb_lite,
                 'fssd': fssd.build_fssd,
+                'fssd_lite': fssd_lite.build_fssd_lite,
             }
 
 # nets part
@@ -33,7 +35,15 @@ networks_map = {
                }
 
 from lib.layers.functions.prior_box import PriorBox
-from torch.autograd import Variable
+import torch
+
+def _forward_features_size(model, img_size):
+    model.eval()
+    x = torch.rand(1, 3, img_size[0], img_size[1])
+    x = torch.autograd.Variable(x, volatile=True).cuda()
+    feature_maps = model(x, phase='feature')
+    return [(o.size()[2], o.size()[3]) for o in feature_maps]
+
 
 def create_model(cfg):
     '''
@@ -43,9 +53,10 @@ def create_model(cfg):
     number_box=[2+2*len(aspect_ratios) for aspect_ratios in cfg.ASPECT_RATIOS]
     model = ssds_map[cfg.SSDS](base=base, feature_layer=cfg.FEATURE_LAYER, mbox=number_box, num_classes=cfg.NUM_CLASSES)
     #
-    feature_maps = model._forward_features_size(cfg.IMAGE_SIZE)
+    feature_maps = _forward_features_size(model, cfg.IMAGE_SIZE)
     print('==>Feature map size:')
     print(feature_maps)
+    #
     priorbox = PriorBox(image_size=cfg.IMAGE_SIZE, feature_maps=feature_maps, aspect_ratios=cfg.ASPECT_RATIOS, 
                     scale=cfg.SIZES, archor_stride=cfg.STEPS, clip=cfg.CLIP)
     # priors = Variable(priorbox.forward(), volatile=True)

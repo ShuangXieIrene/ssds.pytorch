@@ -9,10 +9,10 @@ MODEL:
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 30
+  MAX_EPOCHS: 300
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'loc,conf'
+  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd

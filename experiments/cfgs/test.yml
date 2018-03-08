@@ -46,4 +46,4 @@ DATASET:
 EXP_DIR: './experiments/models/test'
 LOG_DIR: './experiments/models/test'
 RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v1_rfb_lite_voc_73.8.pth'
-PHASE: ['test']
+PHASE: ['visualize']

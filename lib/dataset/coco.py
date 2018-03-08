@@ -221,6 +221,24 @@ class COCODetection(data.Dataset):
         return cv2.imread(img_id, cv2.IMREAD_COLOR)
 
 
+    def pull_anno(self, index):
+        '''Returns the original annotation of image at index
+
+        Note: not using self.__getitem__(), as any transformations passed in
+        could mess up this functionality.
+
+        Argument:
+            index (int): index of img to get annotation of
+        Return:
+            list:  [img_id, [(label, bbox coords),...]]
+                eg: ('001718', [('dog', (96, 13, 438, 332))])
+        '''
+        anno = self.annotations[index]
+        if self.target_transform is not None:
+            anno = self.target_transform(anno)
+        return anno
+
+
     def pull_tensor(self, index):
         '''Returns the original image at an index in tensor form
 

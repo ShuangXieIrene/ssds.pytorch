@@ -250,10 +250,10 @@ class preproc(object):
             image_show = draw_bbox(image_t, boxes)
             self.writer.add_image('preprocess/distort_image', image_show, self.epoch)
         
-        image_t = _elastic(image_t, self.p)
-        if self.writer is not None:
-            image_show = draw_bbox(image_t, boxes)
-            self.writer.add_image('preprocess/elastic_image', image_show, self.epoch)
+        # image_t = _elastic(image_t, self.p)
+        # if self.writer is not None:
+        #     image_show = draw_bbox(image_t, boxes)
+        #     self.writer.add_image('preprocess/elastic_image', image_show, self.epoch)
 
         image_t, boxes = _expand(image_t, boxes, self.means, self.p)
         if self.writer is not None:

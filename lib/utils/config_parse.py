@@ -89,7 +89,7 @@ __C.TRAIN.MAX_EPOCHS = 300
 __C.TRAIN.BATCH_SIZE = 128
 # trainable scope and resuming scope
 __C.TRAIN.TRAINABLE_SCOPE = 'base,extras,norm,loc,conf'
-__C.TRAIN.RESUME_SCOPE = 'base,extras,norm,loc,conf'
+__C.TRAIN.RESUME_SCOPE = ''
 
 # ---------------------------------------------------------------------------- #
 # optimizer options

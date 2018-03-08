@@ -47,14 +47,14 @@ class ObjectDetector:
         # Load weight:
         if cfg.RESUME_CHECKPOINT == '':
             AssertionError('RESUME_CHECKPOINT can not be empty')
-        print('Restoring checkpoint from {:s}'.format(cfg.RESUME_CHECKPOINT))
-        self.model.load_weights(cfg.RESUME_CHECKPOINT)
+        print('=> loading checkpoint {:s}'.format(cfg.RESUME_CHECKPOINT))
+        self.model.load_state_dict(cfg.RESUME_CHECKPOINT)
 
         # test only
         self.model.eval()
 
 
-    def predict(self,img, threshold=0.6):
+    def predict(self, img, threshold=0.6):
         # make sure the input channel is 3 
         assert img.shape[2] == 3
         scale = torch.Tensor([img.shape[1::-1], img.shape[1::-1]])

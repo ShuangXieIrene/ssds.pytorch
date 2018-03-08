@@ -7,8 +7,8 @@ import os
 
 from lib.layers import *
 
-class FSSD(nn.Module):
-    """FSSD: Feature Fusion Single Shot Multibox Detector
+class FSSDLite(nn.Module):
+    """FSSD: Feature Fusion Single Shot Multibox Detector for embeded system
     See: https://arxiv.org/pdf/1712.00960.pdf for more details.
 
     Args:
@@ -22,7 +22,7 @@ class FSSD(nn.Module):
     """
 
     def __init__(self, base, extras, head, features, feature_layer, num_classes):
-        super(FSSD, self).__init__()
+        super(FSSDLite, self).__init__()
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
@@ -31,7 +31,6 @@ class FSSD(nn.Module):
         self.transforms = nn.ModuleList(features[0])
         self.pyramids = nn.ModuleList(features[1])
         # print(self.base)
-        # Layer learns to scale the l2 normalized features from conv4_3
         self.norm = nn.BatchNorm2d(int(feature_layer[0][1][-1]/2)*len(self.transforms),affine=True)
         # print(self.extras)
 
@@ -73,10 +72,12 @@ class FSSD(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = v(x)
-            if k % 2 == 1:
-                sources.append(x)
+            sources.append(x)
+            # if k % 2 == 1:
+            #     sources.append(x)
         assert len(self.transforms) == len(sources)
         upsize = (sources[0].size()[2], sources[0].size()[3])
+        
         for k, v in enumerate(self.transforms):
             size = None if k == 0 else upsize
             transformed.append(v(sources[k], size))
@@ -129,6 +130,22 @@ class BasicConv(nn.Module):
             # x = self.up_sample(x)
         return x
 
+def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
+    return nn.Sequential(
+        # pw
+        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # dw
+        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # pw-linear
+        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+    )
+
+
 def add_extras(base, feature_layer, mbox, num_classes):
     extra_layers = []
     feature_transform_layers = []
@@ -139,14 +156,10 @@ def add_extras(base, feature_layer, mbox, num_classes):
     feature_transform_channel = int(feature_layer[0][1][-1]/2)
     for layer, depth in zip(feature_layer[0][0], feature_layer[0][1]):
         if layer == 'S':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+            extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
             in_channels = depth
         elif layer == '':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+            extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
             in_channels = depth
         else:
             in_channels = depth
@@ -167,6 +180,6 @@ def add_extras(base, feature_layer, mbox, num_classes):
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (feature_transform_layers, pyramid_feature_layers), (loc_layers, conf_layers)
 
-def build_fssd(base, feature_layer, mbox, num_classes):
+def build_fssd_lite(base, feature_layer, mbox, num_classes):
     base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
-    return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)
+    return FSSDLite(base_, extras_, head_, features_, feature_layer, num_classes)

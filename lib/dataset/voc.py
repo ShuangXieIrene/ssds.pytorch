@@ -216,8 +216,12 @@ class VOCDetection(data.Dataset):
         img_id = self.ids[index]
         anno = ET.parse(self._annopath % img_id).getroot()
         # gt = self.target_transform(anno, 1, 1)
-        gt = self.target_transform(anno)
-        return img_id[1], gt
+        # gt = self.target_transform(anno)
+        # return img_id[1], gt
+        if self.target_transform is not None:
+            anno = self.target_transform(anno)
+        return anno
+        
 
     def pull_img_anno(self, index):
         '''Returns the original annotation of image at index
