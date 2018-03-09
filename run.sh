@@ -1,7 +1,6 @@
 #!/bin/bash
 set -e
 
-sleep 1h
-sleep 20m
+export CUDA_VISIBLE_DEVICES=1
 
-python train.py --cfg=./experiments/cfgs/rfb_lite_mobilenetv2_train.yml 2>&1 | tee log.txt
+python train.py --cfg=./experiments/cfgs/ssd_vgg16_train_coco.yml 2>&1 | tee log.txt

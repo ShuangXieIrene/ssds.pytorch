@@ -15,8 +15,8 @@ TRAIN:
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
-    OPTIMIZER: adam
-    LEARNING_RATE: 0.004
+    OPTIMIZER: sgd
+    LEARNING_RATE: 0.001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:

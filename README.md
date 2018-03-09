@@ -33,11 +33,11 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 |-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | VGG16       | [76.0%](https://drive.google.com/open?id=1TS50uVN-9_WJdyO1ImRAW0HFK11RkVlK) | [80.5%](https://drive.google.com/open?id=1bR79OsJY2cidjcI9L1DbXx2zde5sM2nf) | [77.8%](https://drive.google.com/open?id=1HPotrN0oM0oUQu_o-i_VYRYFlT3PKDrr) |
 | MobilenetV1 | N                                                                           | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) |                                                                             |
-| MobilenetV2 |                                                                             | T                                                                           |                                                                             |
+| MobilenetV2 |                                                                             | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) |                                                                             |
 
 | COCO2017    | SSD | RFB                                                                         | FSSD                                                                        |
 |-------------|-----|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| VGG16       | T   |                                                                             | [24.5%](https://drive.google.com/open?id=1mxmv2Al5bzdBvNgY3disrZlxd6CSK2yh) |
+| VGG16       | T   | T                                                                           | [24.5%](https://drive.google.com/open?id=1mxmv2Al5bzdBvNgY3disrZlxd6CSK2yh) |
 | MobilenetV1 | T   | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) |                                                                             |
 | MobilenetV2 |     | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | T                                                                           |
 

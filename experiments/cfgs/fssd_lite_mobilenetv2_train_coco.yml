@@ -14,7 +14,7 @@ TRAIN:
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 16
   TRAINABLE_SCOPE: 'norm,extras,transforms,pyramids,loc,conf'
-  RESUME_SCOPE: 'base'
+  RESUME_SCOPE: 'base,norm,extras,transforms,pyramids,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
     LEARNING_RATE: 0.004

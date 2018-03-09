@@ -14,7 +14,6 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-import torchvision.transforms as transforms
 from torch.autograd import Variable
 
 from lib.utils.config_parse import cfg_from_file

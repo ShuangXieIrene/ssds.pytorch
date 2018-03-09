@@ -2,7 +2,7 @@
 weights/
 data/
 experiments/models/
-runs/
+run.sh
 __pycache__
 *.pyc
 log*

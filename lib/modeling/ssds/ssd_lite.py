@@ -26,7 +26,7 @@ class SSDLite(nn.Module):
         self.num_classes = num_classes
         # SSD network
         self.base = nn.ModuleList(base)
-        self.norm = L2Norm(512, 20)
+        self.norm = L2Norm(feature_layer[1][0], 20)
         self.extras = nn.ModuleList(extras)
 
         self.loc = nn.ModuleList(head[0])
