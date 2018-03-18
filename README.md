@@ -32,14 +32,14 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 | VOC2007     | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
 |-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
 | VGG16       | [76.0%](https://drive.google.com/open?id=1TS50uVN-9_WJdyO1ImRAW0HFK11RkVlK) | [80.5%](https://drive.google.com/open?id=1bR79OsJY2cidjcI9L1DbXx2zde5sM2nf) | [77.8%](https://drive.google.com/open?id=1HPotrN0oM0oUQu_o-i_VYRYFlT3PKDrr) |
-| MobilenetV1 | N                                                                           | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) |                                                                             |
-| MobilenetV2 |                                                                             | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) |                                                                             |
+| MobilenetV1 | [72.7%](https://drive.google.com/open?id=1NMxw-bhvHTGThyNl-MKJrsou4n7HyDCG) | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) |                                                                             |
+| MobilenetV2 |                                                                             | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) | [76.7%](https://drive.google.com/open?id=1t7kxurvfbXNYbFR64EULFSabWQpT256n) |
 
-| COCO2017    | SSD | RFB                                                                         | FSSD                                                                        |
-|-------------|-----|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| VGG16       | T   | T                                                                           | [24.5%](https://drive.google.com/open?id=1mxmv2Al5bzdBvNgY3disrZlxd6CSK2yh) |
-| MobilenetV1 | T   | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) |                                                                             |
-| MobilenetV2 |     | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | T                                                                           |
+| COCO2017    | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
+|-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| VGG16       | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [24.5%](https://drive.google.com/open?id=1mxmv2Al5bzdBvNgY3disrZlxd6CSK2yh) |
+| MobilenetV1 | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | T                                                                           |
+| MobilenetV2 |                                                                             | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
 
 
 ## Visualization
@@ -60,6 +60,7 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 
 ## TODO
 - add DSSDs: DSSD FPN TDM
+- convert to tensorrt based on [this](https://docs.nvidia.com/deeplearning/sdk/tensorrt-api/topics/topics/workflows/manually_construct_tensorrt_engine.html)
 - test the multi-resolution traning
 - add rotation for prerprocess
 - test focal loss

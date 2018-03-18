@@ -188,6 +188,7 @@ class COCODetection(data.Dataset):
         # img_id = self.image_path_from_index(name, self.ids[index])
         img_id = self.ids[index]
         target = self.annotations[index]
+
         img = cv2.imread(img_id, cv2.IMREAD_COLOR)
         height, width, _ = img.shape
 

@@ -2,30 +2,30 @@ MODEL:
   SSDS: ssd_lite
   NETS: mobilenet_v1
   IMAGE_SIZE: [300, 300]
-  NUM_CLASSES: 81
+  NUM_CLASSES: 21
   FEATURE_LAYER: [[11, 13, 'S', 'S', 'S', 'S'], [512, 1024, 512, 256, 256, 128]]
   STEPS: [[16, 16], [32, 32], [64, 64], [100, 100], [150, 150], [300, 300]]
   SIZES: [[45, 45], [90, 90], [135, 135], [180, 180], [225, 225], [270, 270], [315, 315]]
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 300
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.001
+    LEARNING_RATE: 0.004
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 0
+    WARM_UP_EPOCHS: 100
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [90, 100]
+  TEST_SCOPE: [285, 300]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -38,13 +38,13 @@ POST_PROCESS:
   MAX_DETECTIONS: 100
 
 DATASET:
-  DATASET: 'coco'
-  DATASET_DIR: './data/COCO'
-  TRAIN_SETS: [['2017', 'train']]
-  TEST_SETS:  [['2017', 'val']]
+  DATASET: 'voc'
+  DATASET_DIR: './data/VOCdevkit'
+  TRAIN_SETS: [['2007', 'trainval'], ['2012', 'trainval']]
+  TEST_SETS:  [['2007', 'test']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/ssd_mobilenet_v1_coco'
-LOG_DIR: './experiments/models/ssd_mobilenet_v1_coco'
-RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v1_rfb_lite_coco_19.1.pth'
+EXP_DIR: './experiments/models/ssd_mobilenet_v1_voc'
+LOG_DIR: './experiments/models/ssd_mobilenet_v1_voc'
+RESUME_CHECKPOINT: './weights/ssd_lite/mobilenetv1_ssd_lite_coco_18.8.pth'
 PHASE: ['test']

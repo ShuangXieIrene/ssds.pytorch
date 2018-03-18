@@ -9,19 +9,19 @@ MODEL:
   ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
 
 TRAIN:
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 200
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'norm,extras,loc,conf'
-  RESUME_SCOPE: 'base,loc,conf'
+  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
+  RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.004
+    LEARNING_RATE: 0.001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 0
+    WARM_UP_EPOCHS: 95
 
 TEST:
   BATCH_SIZE: 64
