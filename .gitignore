@@ -1,6 +1,7 @@
 .vscode/
 weights/
 data/
+data
 experiments/models/
 run.sh
 __pycache__

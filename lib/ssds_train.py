@@ -254,7 +254,7 @@ class Solver(object):
             sys.stdout.write('\rCheckpoint {}:\n'.format(self.checkpoint))
             self.resume_checkpoint(self.checkpoint)
             if 'eval' in cfg.PHASE:
-                self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
+                self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, 0, self.use_gpu)
             if 'test' in cfg.PHASE:
                 self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
 
@@ -335,10 +335,13 @@ class Solver(object):
         _t = Timer()
 
         label = [list() for _ in range(model.num_classes)]
+        gt_label = [list() for _ in range(model.num_classes)]
         score = [list() for _ in range(model.num_classes)]
+        size = [list() for _ in range(model.num_classes)]
         npos = [0] * model.num_classes
 
         for iteration in iter(range((epoch_size))):
+        # for iteration in iter(range((10))):        
             images, targets = next(batch_iterator)
             if use_gpu:
                 images = Variable(images.cuda())
@@ -349,7 +352,7 @@ class Solver(object):
 
             _t.tic()
             # forward
-            out = model(images, phase='eval')
+            out = model(images, phase='train')
             
             # loss
             loss_l, loss_c = criterion(out, targets)
@@ -362,7 +365,8 @@ class Solver(object):
             time = _t.toc()
 
             # evals
-            label, score, npos = cal_tp_fp(detections, targets, label, score, npos)
+            label, score, npos, gt_label = cal_tp_fp(detections, targets, label, score, npos, gt_label)
+            size = cal_size(detections, targets, size)
             loc_loss += loss_l.data[0]
             conf_loss += loss_c.data[0]
 
@@ -389,7 +393,8 @@ class Solver(object):
         writer.add_scalar('Eval/loc_loss', loc_loss/epoch_size, epoch)
         writer.add_scalar('Eval/conf_loss', conf_loss/epoch_size, epoch)
         writer.add_scalar('Eval/mAP', ap, epoch)
-        # self.draw_pr()
+        viz_pr_curve(writer, prec, rec, epoch)
+        viz_archor_strategy(writer, size, gt_label, epoch)
 
     # TODO: HOW TO MAKE THE DATALOADER WITHOUT SHUFFLE
     # def test_epoch(self, model, data_loader, detector, output_dir, use_gpu):
@@ -579,38 +584,18 @@ class Solver(object):
         self.writer.add_graph(self.model, (dummy_input, ))
 
 
-    def export_prior_box(self):
-        if getattr(self, self.cfg.PHASE[0]+'_loader') is not None:
-            image = getattr(self, self.cfg.PHASE[0]+'_loader').dataset.pull_image(0)
-            viz_prior_box(self.writer, self.priorbox, image)
-
-    def draw_pr(self, precision, recall, iter):
-        for i, (prec, rec) in enumerate(zip(precision, recall)):
-            num_thresholds = min(500, len(prec))
-            if num_thresholds != len(prec):
-                gap = len(prec) / num_thresholds
-                _prec = np.append(prec[::gap], prec[-1])
-                _rec  = np.append(rec[::gap], rec[-1])
-                num_thresholds = len(_prec)
-            # the pr_curve_raw_data_pb() needs the a ascending precisions array and a descending recalls array
-            _prec[::-1].sort()
-            _rec[::-1].sort()
-            #TODO: This one is not correct.
-            # self.writer.add_pr_curve(tag=i, _prec, _rec, iter)
-
-
-    def draw_bounding_box(self, img, ground_truth, predictions, iteration, tag='image'):
-        scale = torch.Tensor([img.shape[1], img.shape[0],
-                             img.shape[1], img.shape[0]])
-        pred_bbxs = get_correct_detection(predictions, ground_truth) * scale
-        gt_bbxs = ground_truth[0] * scale
-        for gt_bbxs_c in gt_bbxs:
-            for bbx in gt_bbxs_c:
-                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 0, 255), 5)
-        for pred_bbxs_c in pred_bbxs:
-            for bbx in pred_bbxs_c:
-                cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 255, 0), 5)
-        self.writer.add_image(tag, img, iteration)
+    # def draw_bounding_box(self, img, ground_truth, predictions, iteration, tag='image'):
+    #     scale = torch.Tensor([img.shape[1], img.shape[0],
+    #                          img.shape[1], img.shape[0]])
+    #     pred_bbxs = get_correct_detection(predictions, ground_truth) * scale
+    #     gt_bbxs = ground_truth[0] * scale
+    #     for gt_bbxs_c in gt_bbxs:
+    #         for bbx in gt_bbxs_c:
+    #             cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 0, 255), 5)
+    #     for pred_bbxs_c in pred_bbxs:
+    #         for bbx in pred_bbxs_c:
+    #             cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 255, 0), 5)
+    #     self.writer.add_image(tag, img, iteration)
 
     def predict(self, img):
         return True

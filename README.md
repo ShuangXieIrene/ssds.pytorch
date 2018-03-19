@@ -56,6 +56,9 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 - visualize the preprocess steps for training (tensorboard)
 ![preprocess](./doc/imgs/preprocess.jpg)
 
+- visualize the pr curve for different classes and anchor matching strategy for different properties during evaluation (tensorboard)
+![pr_curve](./doc/imgs/pr_curve.jpg)
+
 - visualize weight (coming soon & any suggestion?)
 
 ## TODO
