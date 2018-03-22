@@ -46,5 +46,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/rfb_vgg16_coco'
 LOG_DIR: './experiments/models/rfb_vgg16_coco'
-RESUME_CHECKPOINT: './weights/rfb/vgg16_rfb_voc_80.5.pth'
+RESUME_CHECKPOINT: './weights/rfb/vgg16_rfb_coco_25.5.pth'
 PHASE: ['test']

@@ -45,5 +45,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/fssd_vgg16_voc'
 LOG_DIR: './experiments/models/fssd_vgg16_voc'
-RESUME_CHECKPOINT: './weights/FSSD_vgg_VOC_epoches_270.pth'
+RESUME_CHECKPOINT: './weights/fssd/vgg16_fssd_voc_77.8.pth'
 PHASE: ['test']

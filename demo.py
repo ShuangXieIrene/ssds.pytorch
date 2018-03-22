@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--demo', dest='demo_file',
             help='the address of the demo file', default=None, type=str, required=True)
     parser.add_argument('-t', '--type', dest='type',
-            help='the type of the demo file, could be "image", "video", "camera", default is "image"', default='image', type=str)
+            help='the type of the demo file, could be "image", "video", "camera" or "time", default is "image"', default='image', type=str)
     parser.add_argument('-d', '--display', dest='display',
             help='whether display the detection result, default is True', default=True, type=bool)
     parser.add_argument('-s', '--save', dest='save',
@@ -116,8 +116,38 @@ def demo_live(args, video_path):
             if not os.path.exists(path):
                 os.mkdir(path)
             cv2.imwrite(path + '/{}.jpg'.format(index), image)        
-            
 
+
+def time_benchmark(args, image_path):
+    # 1. load the configure file
+    cfg_from_file(args.confg_file)
+
+    # 2. load detector based on the configure file
+    object_detector = ObjectDetector()
+
+    # 3. load image
+    image = cv2.imread(image_path)
+
+    # 4. time test
+    warmup = 20
+    time_iter = 100
+    print('Warmup the detector...')
+    _t = list()
+    for i in range(warmup+time_iter):
+        _, _, _, (total_time, preprocess_time, net_forward_time, detect_time, output_time) \
+            = object_detector.predict(image, check_time=True)
+        if i > warmup:
+            _t.append([total_time, preprocess_time, net_forward_time, detect_time, output_time])
+            if i % 20 == 0: 
+                print('In {}\{}, total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
+                    i-warmup, time_iter, total_time, preprocess_time, net_forward_time, detect_time, output_time
+                ))
+    total_time, preprocess_time, net_forward_time, detect_time, output_time = np.sum(_t, axis=0)/time_iter
+    print('In average, total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
+        total_time, preprocess_time, net_forward_time, detect_time, output_time
+    ))
+
+    
 if __name__ == '__main__':
     args = parse_args()
     if args.type == 'image':
@@ -126,5 +156,7 @@ if __name__ == '__main__':
         demo_live(args, args.demo_file)
     elif args.type == 'camera':
         demo_live(args, int(args.demo_file))
+    elif args.type == 'time':
+        time_benchmark(args, args.demo_file)
     else:
         AssertionError('type is not correct')

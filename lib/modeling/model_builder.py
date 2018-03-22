@@ -23,6 +23,9 @@ from lib.modeling.nets import mobilenet
 
 networks_map = {
                     'vgg16': vgg.vgg16,
+                    'resnet_18': resnet.resnet_18,
+                    'resnet_34': resnet.resnet_34,
+                    'resnet_50': resnet.resnet_50,
                     'resnet_101': resnet.resnet_101,
                     'mobilenet_v1': mobilenet.mobilenet_v1,
                     'mobilenet_v1_075': mobilenet.mobilenet_v1_075,

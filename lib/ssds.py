@@ -12,7 +12,7 @@ from lib.modeling.model_builder import create_model
 from lib.utils.config_parse import cfg
 
 class ObjectDetector:
-    def __init__(self):
+    def __init__(self, viz_arch=False):
         self.cfg = cfg
 
         # Build model
@@ -21,7 +21,8 @@ class ObjectDetector:
         self.priors = Variable(self.priorbox.forward(), volatile=True)
 
         # Print the model architecture and parameters
-        print('Model architectures:\n{}\n'.format(self.model))
+        if viz_arch is True:
+            print('Model architectures:\n{}\n'.format(self.model))
 
         # Utilize GPUs for computation
         self.use_gpu = torch.cuda.is_available()
@@ -47,13 +48,14 @@ class ObjectDetector:
         if cfg.RESUME_CHECKPOINT == '':
             AssertionError('RESUME_CHECKPOINT can not be empty')
         print('=> loading checkpoint {:s}'.format(cfg.RESUME_CHECKPOINT))
-        self.model.load_state_dict(cfg.RESUME_CHECKPOINT)
+        checkpoint = torch.load(cfg.RESUME_CHECKPOINT)
+        self.model.load_state_dict(checkpoint)
 
         # test only
         self.model.eval()
 
 
-    def predict(self, img, threshold=0.6):
+    def predict(self, img, threshold=0.6, check_time=False):
         # make sure the input channel is 3 
         assert img.shape[2] == 3
         scale = torch.Tensor([img.shape[1::-1], img.shape[1::-1]])
@@ -93,9 +95,12 @@ class ObjectDetector:
                 coords.append(detections[batch,classes,num,1:]*scale)
                 num+=1
         output_time = _t['output'].toc()
-
         total_time = preprocess_time + net_forward_time + detect_time + output_time
-        print('total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
-            total_time, preprocess_time, net_forward_time, detect_time, output_time
-        ))
+        
+        if check_time is True:
+            return labels, scores, coords, (total_time, preprocess_time, net_forward_time, detect_time, output_time)
+            # total_time = preprocess_time + net_forward_time + detect_time + output_time
+            # print('total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
+            #     total_time, preprocess_time, net_forward_time, detect_time, output_time
+            # ))
         return labels, scores, coords

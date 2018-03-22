@@ -47,5 +47,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/fssd_mobilenet_v2_coco'
 LOG_DIR: './experiments/models/fssd_mobilenet_v2_coco'
-RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v2_rfb_lite_coco_18.5.pth'
+RESUME_CHECKPOINT: './weights/fssd_lite/mobilenet_v2_fssd_lite_coco_22.2.pth'
 PHASE: ['test']
