@@ -48,8 +48,9 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 | VGG16                       | 1.78ms | 4.20ms | 1.98ms |
 | MobilenetV1                 | 2.87ms | 3.84ms | 2.62ms |
 | MobilenetV2                 | 4.18ms | 5.28ms | 4.02ms |
-*-only calculate the all network inference time, without pre-processing & post-processing. 
-In fact, the speed of vgg is super impress me. Maybe it is caused by MobilenetV1 and MobilenetV2 is using -lite structure, which uses the seperate conv in the base and extra layers.
+
+(*-only calculate the all network inference time, without pre-processing & post-processing. 
+In fact, the speed of vgg is super impress me. Maybe it is caused by MobilenetV1 and MobilenetV2 is using -lite structure, which uses the seperate conv in the base and extra layers.)
 
 ## Visualization
 
