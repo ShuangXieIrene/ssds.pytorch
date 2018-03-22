@@ -5,6 +5,7 @@ import sys
 import cv2
 import random
 import pickle
+
 import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
@@ -17,7 +18,6 @@ from tensorboardX import SummaryWriter
 
 from lib.layers import *
 from lib.utils.timer import Timer
-from lib.utils.nms.nms_wrapper import nms
 from lib.utils.data_augment import preproc
 from lib.modeling.model_builder import create_model
 from lib.dataset.dataset_factory import load_data

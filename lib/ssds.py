@@ -10,7 +10,6 @@ from lib.utils.timer import Timer
 from lib.utils.data_augment import preproc
 from lib.modeling.model_builder import create_model
 from lib.utils.config_parse import cfg
-from lib.utils.fp16_utils import BN_convert_float
 
 class ObjectDetector:
     def __init__(self):
