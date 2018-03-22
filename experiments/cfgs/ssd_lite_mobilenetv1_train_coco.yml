@@ -46,5 +46,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/ssd_mobilenet_v1_coco'
 LOG_DIR: './experiments/models/ssd_mobilenet_v1_coco'
-RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v1_rfb_lite_coco_19.1.pth'
+RESUME_CHECKPOINT: './weights/ssd_lite/mobilenetv1_ssd_lite_coco_18.8.pth'
 PHASE: ['test']

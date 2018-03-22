@@ -240,6 +240,9 @@ class Solver(object):
                 self.save_checkpoints(epoch)
 
     def test_model(self):
+        # export graph for the model, onnx always not works
+        # self.export_graph()
+        
         previous = self.find_previous()
         if previous:
             for epoch, resume_checkpoint in zip(previous[0], previous[1]):
@@ -578,10 +581,17 @@ class Solver(object):
         
 
     def export_graph(self):
-        dummy_input = Variable(torch.randn(10, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
-        if not os.path.exists(cfg.EXP_DIR):
-            os.makedirs(cfg.EXP_DIR)
-        self.writer.add_graph(self.model, (dummy_input, ))
+        self.model.train(False)
+        dummy_input = Variable(torch.randn(1, 3, cfg.MODEL.IMAGE_SIZE[0], cfg.MODEL.IMAGE_SIZE[1])).cuda()
+        # Export the model
+        torch_out = torch.onnx._export(self.model,             # model being run
+                                       dummy_input,            # model input (or a tuple for multiple inputs)
+                                       "graph.onnx",           # where to save the model (can be a file or file-like object)
+                                       export_params=True)     # store the trained parameter weights inside the model file
+        # if not os.path.exists(cfg.EXP_DIR):
+        #     os.makedirs(cfg.EXP_DIR)
+        # self.writer.add_graph(self.model, (dummy_input, ))
+
 
 
     # def draw_bounding_box(self, img, ground_truth, predictions, iteration, tag='image'):
