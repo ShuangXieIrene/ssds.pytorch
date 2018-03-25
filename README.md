@@ -39,7 +39,7 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 
 | COCO2017    | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
 |-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| VGG16       | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [24.5%](https://drive.google.com/open?id=1mxmv2Al5bzdBvNgY3disrZlxd6CSK2yh) |
+| VGG16       | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [27.2%](https://drive.google.com/open?id=1qf5ccFDp2TVP-7xUggrabfWwwYt5BTrG) |
 | MobilenetV1 | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | [24.2%](https://drive.google.com/open?id=1jRDwuXIeST4F5UBY2Z379nvkxz_OtxVd) |
 | MobilenetV2 | [18.5%](https://drive.google.com/open?id=1FXjPnJ3X7PdH7Ii6lOEFA8EkKif4Ppnn) | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
 
