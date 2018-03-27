@@ -48,7 +48,7 @@ import torch
 def _forward_features_size(model, img_size):
     model.eval()
     x = torch.rand(1, 3, img_size[0], img_size[1])
-    x = torch.autograd.Variable(x, volatile=True).cuda()
+    x = torch.autograd.Variable(x, volatile=True) #.cuda()
     feature_maps = model(x, phase='feature')
     return [(o.size()[2], o.size()[3]) for o in feature_maps]
 

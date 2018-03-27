@@ -11,10 +11,10 @@ MODEL:
                   [[0.278,0.216], [0.375,0.475], [0.896,0.783]],]
 
 TRAIN:
-  MAX_EPOCHS: 200
+  MAX_EPOCHS: 50
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'loc,conf'
+  TRAINABLE_SCOPE: 'extras,loc,conf'
   RESUME_SCOPE: 'base,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
@@ -23,7 +23,7 @@ TRAIN:
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 10
+    WARM_UP_EPOCHS: 0
 
 TEST:
   BATCH_SIZE: 64
