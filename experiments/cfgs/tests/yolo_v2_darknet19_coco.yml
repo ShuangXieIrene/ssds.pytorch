@@ -1,15 +1,14 @@
 MODEL:
-  SSDS: ssd
-  NETS: resnet_101
-  IMAGE_SIZE: [300, 300]
+  SSDS: yolo_v2
+  NETS: darknet_19
+  IMAGE_SIZE: [416, 416]
   NUM_CLASSES: 81
-  FEATURE_LAYER: [[10, 33, 'S', 'S', '', ''], [512, 1024, 512, 256, 256, 256]]
-  STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
-  SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]]
-  ASPECT_RATIOS: [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
+  FEATURE_LAYER: [[10, 16, 'S', 'S', '', ''], [512, 1024, 512, 256, 256, 256]]
+  SIZES: [[416, 416]]
+  ASPECT_RATIOS: [[[2,3], [2,3], [2,3], [2,3], [2,3]]]
 
 TRAIN:
-  MAX_EPOCHS: 50
+  MAX_EPOCHS: 200
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
@@ -43,7 +42,7 @@ DATASET:
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/ssd_resnet101_coco'
-LOG_DIR: './experiments/models/ssd_resnet101_coco'
-RESUME_CHECKPOINT: './weights/resnet101-5d3b4d8f.pth'
+EXP_DIR: './experiments/models/ssd_resnet50_coco'
+LOG_DIR: './experiments/models/ssd_resnet50_coco'
+RESUME_CHECKPOINT: './weights/resnet50-19c8e357.pth'
 PHASE: ['train']

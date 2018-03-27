@@ -7,7 +7,7 @@ MODEL:
                   [['', 'S', 'S', 'S', '', ''], [512, 512, 256, 256, 256, 256]]]
   STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
   SIZES: [[30, 30], [60, 60], [111, 111], [162, 162], [213, 213], [264, 264], [315, 315]]
-  ASPECT_RATIOS: [[2,3], [2, 3], [2, 3], [2, 3], [2], [2]]
+  ASPECT_RATIOS: [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
 
 TRAIN:
   MAX_EPOCHS: 100
@@ -26,7 +26,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [27, 30]
+  TEST_SCOPE: [90, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -48,4 +48,4 @@ DATASET:
 EXP_DIR: './experiments/models/fssd_vgg16_coco'
 LOG_DIR: './experiments/models/fssd_vgg16_coco'
 RESUME_CHECKPOINT: './weights/fssd/vgg16_fssd_coco_24.5.pth'
-PHASE: ['train']
+PHASE: ['test']

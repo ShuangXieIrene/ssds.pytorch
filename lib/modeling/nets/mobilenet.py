@@ -44,6 +44,8 @@ class _conv_bn(nn.Module):
             nn.BatchNorm2d(oup),
             nn.ReLU(inplace=True),
         )
+        self.depth = oup
+
     def forward(self, x):
         return self.conv(x)
 
@@ -61,6 +63,8 @@ class _conv_dw(nn.Module):
             nn.BatchNorm2d(oup),
             nn.ReLU(inplace=True),
         )
+        self.depth = oup
+
     def forward(self, x):
         return self.conv(x)
 
@@ -82,6 +86,8 @@ class _inverted_residual_bottleneck(nn.Module):
             nn.Conv2d(inp * expand_ratio, oup, 1, 1, 0, bias=False),
             nn.BatchNorm2d(oup),
         )
+        self.depth = oup
+        
     def forward(self, x):
         if self.use_res_connect:
             return x + self.conv(x)
