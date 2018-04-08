@@ -4,23 +4,34 @@ import numpy as np
 import math
 from itertools import product as product
 
+def images_to_writer(writer, images, prefix='image', names='image', epoch=0):
+    if isinstance(names, str):
+        names = [names+'_{}'.format(i) for i in range(len(images))]
+
+    for image, name in zip(images, names):
+        writer.add_image('{}/{}'.format(prefix, name), image, epoch)
+
+
 def to_grayscale(image):
     """
     input is (d,w,h)
     converts 3D image tensor to grayscale images corresponding to each channel
     """
+    # print(image.shape)
+    channel = image.shape[0]
     image = torch.sum(image, dim=0)
-    image = torch.div(image, image.shape[0])
+    # print(image.shape)
+    image = torch.div(image, channel)
+    # print(image.shape)
+    # assert False
     return image
+
 
 def to_image_size(feature, target_img):
     height, width, _ = target_img.shape
     resized_feature = cv2.resize(feature, (width, height)) 
     return resized_feature
 
-def to_heatmap(gray_img):
-    heatmap_img = cv2.applyColorMap(gray_img, cv2.COLORMAP_JET)
-    return heatmap_img
 
 def features_to_grid(features):
     num, height, width, channel = (len(features), len(features[0]), len(features[0][0]), len(features[0][0]))
@@ -35,58 +46,69 @@ def features_to_grid(features):
     return output
     
 
-def base_layer_outputs(model, image):
-    modulelist = list(model.base.modules())
-    outputs, output_im, names = [list() for _ in range(3)]
-    for i, layer in enumerate(modulelist): 
-        image = layer(image)
-        outputs.append(image)
-        names.append('base.{}.{}'.format(i, str(layer)))
-
-    for i in outputs:
+def viz_feature_maps(writer, feature_maps, module_name='base', epoch=0, prefix='module_feature_maps'):
+    feature_map_visualization = []
+    for i in feature_maps:
         i = i.squeeze(0)
         temp = to_grayscale(i)
-        output_im.append(temp.data.cpu().numpy())
-    return output_im, names
+        feature_map_visualization.append(temp.data.cpu().numpy())
+        
+    names, feature_map_heatmap = [], []
+    for i, feature_map in enumerate(feature_map_visualization):
+        feature_map = (feature_map * 255)
+        heatmap = cv2.applyColorMap(feature_map.astype(np.uint8), cv2.COLORMAP_JET)
+        feature_map_heatmap.append(heatmap[..., ::-1])
+        names.append('{}.{}'.format(module_name, i))
 
+    images_to_writer(writer, feature_map_heatmap, prefix, names, epoch)
 
-def all_feature_maps_outputs(feature_map):
-    features = []
-    names = str(feature_map)
-    for i in range(feature_map.shape[0]):
-        features.append(feature_map[i,:,:])
-    return features, names
-
-def one_feature_maps_outputs(feature_map):
-    names = str(feature_map)
-    temp = feature_map.squeeze(0)
-    temp = to_grayscale(temp)
-    feature = temp.data.cpu().numpy()
-    return feature, names
-
-def images_to_writer(writer, images, prefix='image', names='image', epoch=0):
-    if isinstance(names, str):
-        names = [names+'_{}'.format(i) for i in range(len(images))]
-
-    for image, name in zip(images, names):
-        writer.add_image('{}/{}'.format(prefix, name), image, epoch)
+def viz_grads(writer, model, feature_maps, target_image, target_mean, module_name='base', epoch=0, prefix='module_grads'):
+    grads_visualization = []
+    names = []
+    for i, feature_map in enumerate(feature_maps):
+        model.zero_grad()
+        
+        # print()
+        feature_map.backward(torch.Tensor(np.ones(feature_map.size())), retain_graph=True)
+        # print(target_image.grad)
+        grads = target_image.grad.data.clamp(min=0).squeeze(0).permute(1,2,0)
+        # print(grads)
+        # assert False
+        grads_visualization.append(grads.cpu().numpy()+target_mean)
+        names.append('{}.{}'.format(module_name, i))
     
-def viz_base_layer(writer, model, image, epoch=0):
-    feature_maps, names = base_layer_outputs(model, image)
-    for feature_map in feature_maps:
-        feature_map_heatmap = to_heatmap(feature_map)
-    images_to_writer(writer, feature_map_heatmap, 'base_layers', names, epoch=0)
+    images_to_writer(writer, grads_visualization, prefix, names, epoch)
 
-def viz_feature_extractor(writer, feature_extractor, epoch=0):
-    features, names = [list() for _ in range(2)]
-    for feature_maps in feature_extractor:
-        feature, name = one_feature_maps_outputs(feature_maps)
-        feature_map_heatmap = to_heatmap(feature)
-        print(feature_map_heatmap)
-        features.append(feature_map_heatmap)
-        names.append(name)
-    images_to_writer(writer, feature_map_heatmap, 'feature_extractor', names, epoch=0)
+def viz_module_feature_maps(writer, module, input_image, module_name='base', epoch=0, mode='one', prefix='module_feature_maps'):
+    output_image = input_image
+    feature_maps = []
 
+    for i, layer in enumerate(module):
+        output_image = layer(output_image)
+        feature_maps.append(output_image)
+
+    if mode is 'grid':
+        pass
+    elif mode is 'one':
+        viz_feature_maps(writer, feature_maps, module_name, epoch, prefix)
+
+    return output_image
+
+
+def viz_module_grads(writer, model, module, input_image, target_image, target_mean, module_name='base', epoch=0, mode='one', prefix='module_grads'):
+    output_image = input_image
+    feature_maps = []
+
+    for i, layer in enumerate(module):
+        output_image = layer(output_image)
+        feature_maps.append(output_image)
+
+    if mode is 'grid':
+        pass
+    elif mode is 'one':
+        viz_grads(writer, model, feature_maps, target_image, target_mean, module_name, epoch, prefix)
+    
+    return output_image
 
 def viz_prior_box(writer, prior_box, image=None, epoch=0):  
     if isinstance(image, type(None)):

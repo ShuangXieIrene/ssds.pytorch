@@ -6,24 +6,24 @@ MODEL:
   FEATURE_LAYER: [[['B','B','B'], [23,'B','B','B'], [14,'B','B','B']],
                   [[1024,1024,1024], [256, 512, 512, 512], [128, 256, 256, 256]]]
   SIZES: [[416, 416], [416, 416], [416, 416]]
-  ASPECT_RATIOS: [[[0.024,0.031], [0.038,0.072], [0.079,0.055]], 
+  ASPECT_RATIOS: [[[0.278,0.216], [0.375,0.475], [0.896,0.783]],
                   [[0.072,0.146], [0.146,0.108], [0.141,0.286]],
-                  [[0.278,0.216], [0.375,0.475], [0.896,0.783]],]
+                  [[0.024,0.031], [0.038,0.072], [0.079,0.055]], ]
 
 TRAIN:
-  MAX_EPOCHS: 50
+  MAX_EPOCHS: 200
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'extras,loc,conf'
+  BATCH_SIZE: 12
+  TRAINABLE_SCOPE: 'base,extras,loc,conf'
   RESUME_SCOPE: 'base,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.004
+    LEARNING_RATE: 0.001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 0
+    WARM_UP_EPOCHS: 80
 
 TEST:
   BATCH_SIZE: 64

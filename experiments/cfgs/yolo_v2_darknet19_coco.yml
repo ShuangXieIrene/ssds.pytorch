@@ -1,0 +1,49 @@
+MODEL:
+  SSDS: yolo_v2
+  NETS: darknet_19
+  IMAGE_SIZE: [416, 416]
+  NUM_CLASSES: 81
+  FEATURE_LAYER: [[['', '',12, '']], [[1024, 1024, 64, 1024]]]
+  SIZES: [[416, 416]]
+  ASPECT_RATIOS: [[[0.1,0.1], [0.2,0.2], [0.3,0.3], [0.5,0.5], [0.9,0.9]]]
+
+TRAIN:
+  MAX_EPOCHS: 200
+  CHECKPOINTS_EPOCHS: 1
+  BATCH_SIZE: 32
+  TRAINABLE_SCOPE: 'base,extras,loc,conf'
+  RESUME_SCOPE: 'base,extras,loc,conf'
+  OPTIMIZER:
+    OPTIMIZER: sgd
+    LEARNING_RATE: 0.001
+    MOMENTUM: 0.9
+    WEIGHT_DECAY: 0.0001
+  LR_SCHEDULER:
+    SCHEDULER: SGDR
+    WARM_UP_EPOCHS: 120
+
+TEST:
+  BATCH_SIZE: 64
+  TEST_SCOPE: [198, 200]
+
+MATCHER:
+  MATCHED_THRESHOLD: 0.5
+  UNMATCHED_THRESHOLD: 0.5
+  NEGPOS_RATIO: 3
+
+POST_PROCESS:
+  SCORE_THRESHOLD: 0.01
+  IOU_THRESHOLD: 0.6
+  MAX_DETECTIONS: 100
+
+DATASET:
+  DATASET: 'coco'
+  DATASET_DIR: './data/COCO'
+  TRAIN_SETS: [['2017', 'train']]
+  TEST_SETS:  [['2017', 'val']]
+  PROB: 0.6
+
+EXP_DIR: './experiments/models/yolo_v2_darknet_19_coco'
+LOG_DIR: './experiments/models/yolo_v2_darknet_19_coco'
+RESUME_CHECKPOINT: './weights/yolo/darknet19_yolo_v2_coco_26.1.pth'
+PHASE: ['test']

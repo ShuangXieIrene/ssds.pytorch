@@ -6,6 +6,42 @@ base = {
             512, 512, 512],
 }
 
+# CONV_DEFS_16 = [
+#     Conv(stride=1, depth=64),
+#     Conv(stride=1, depth=64),
+#     'M',
+#     Conv(stride=1, depth=128),
+#     Conv(stride=1, depth=128),
+#     'M'
+#     Conv(stride=1, depth=256),
+#     Conv(stride=1, depth=256),
+#     Conv(stride=1, depth=256),
+#     'M'
+#     Conv(stride=1, depth=512),
+#     Conv(stride=1, depth=512),
+#     Conv(stride=1, depth=512),
+#     'M'
+#     Conv(stride=1, depth=512),
+#     Conv(stride=1, depth=512),
+#     Conv(stride=1, depth=512),
+# ]
+
+# Conv = namedtuple('Conv', ['stride', 'depth'])
+
+# class _conv_bn(nn.Module):
+#     def __init__(self, inp, oup, stride):
+#         super(_conv_bn, self).__init__()
+#         self.conv = nn.Sequential(
+#             nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+#             nn.BatchNorm2d(oup),
+#             nn.ReLU(inplace=True),
+#         )
+#         self.depth = oup
+
+#     def forward(self, x):
+#         return self.conv(x)
+
+
 def vgg(cfg, i, batch_norm=False):
     layers = []
     in_channels = i

@@ -105,7 +105,7 @@ def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
     loc_layers = []
     conf_layers = []
-    in_channels = 1024
+    in_channels = base[-1].depth
     for layers, depths, box in zip(feature_layer[0], feature_layer[1], mbox):
         for layer, depth in zip(layers, depths):
             if layer == '':

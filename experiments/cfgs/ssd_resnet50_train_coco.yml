@@ -25,6 +25,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 64
+  TEST_SCOPE: [190, 200]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -46,4 +47,4 @@ DATASET:
 EXP_DIR: './experiments/models/ssd_resnet50_coco'
 LOG_DIR: './experiments/models/ssd_resnet50_coco'
 RESUME_CHECKPOINT: './weights/resnet50-19c8e357.pth'
-PHASE: ['train']
+PHASE: ['test']

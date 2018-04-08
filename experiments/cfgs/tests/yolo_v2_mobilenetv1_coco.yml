@@ -1,29 +1,30 @@
 MODEL:
   SSDS: yolo_v2
-  NETS: darknet_19
+  NETS: mobilenet_v1
   IMAGE_SIZE: [416, 416]
   NUM_CLASSES: 81
-  FEATURE_LAYER: [[10, 16, 'S', 'S', '', ''], [512, 1024, 512, 256, 256, 256]]
+  FEATURE_LAYER: [[['', '',11, '']], [[1024, 1024, 64, 1024]]]
   SIZES: [[416, 416]]
-  ASPECT_RATIOS: [[[2,3], [2,3], [2,3], [2,3], [2,3]]]
+  ASPECT_RATIOS: [[[0.1,0.1], [0.2,0.2], [0.3,0.3], [0.5,0.5], [0.9,0.9]]]
 
 TRAIN:
-  MAX_EPOCHS: 200
+  MAX_EPOCHS: 100
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
-  RESUME_SCOPE: 'base,norm,extras,loc,conf'
+  TRAINABLE_SCOPE: 'base,extras,loc,conf'
+  RESUME_SCOPE: 'base,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.004
+    LEARNING_RATE: 0.001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 10
+    WARM_UP_EPOCHS: 60
 
 TEST:
   BATCH_SIZE: 64
+  TEST_SCOPE: [198, 200]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -42,7 +43,7 @@ DATASET:
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/ssd_resnet50_coco'
-LOG_DIR: './experiments/models/ssd_resnet50_coco'
-RESUME_CHECKPOINT: './weights/resnet50-19c8e357.pth'
+EXP_DIR: './experiments/models/yolo_v2_mobilenetv1_coco'
+LOG_DIR: './experiments/models/yolo_v2_mobilenetv1_coco'
+RESUME_CHECKPOINT: './weights/rfb_lite/mobilenet_v1_rfb_lite_coco_19.1.pth'
 PHASE: ['train']

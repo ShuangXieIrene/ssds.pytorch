@@ -30,18 +30,26 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 
 ## Performance
 
-| VOC2007     | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
-|-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| VGG16       | [76.0%](https://drive.google.com/open?id=1TS50uVN-9_WJdyO1ImRAW0HFK11RkVlK) | [80.5%](https://drive.google.com/open?id=1bR79OsJY2cidjcI9L1DbXx2zde5sM2nf) | [77.8%](https://drive.google.com/open?id=1HPotrN0oM0oUQu_o-i_VYRYFlT3PKDrr) |
-| MobilenetV1 | [72.7%](https://drive.google.com/open?id=1NMxw-bhvHTGThyNl-MKJrsou4n7HyDCG) | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) | [78.4%](https://drive.google.com/open?id=1BVF7OaFcffJkqXbYBj1pj1nvX7ku8a55) |
-| MobilenetV2 | [73.2%](https://drive.google.com/open?id=1SBeSIFv5z9AUtwcrJgPI4Xpc8-BCN6ro) | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) | [76.7%](https://drive.google.com/open?id=1t7kxurvfbXNYbFR64EULFSabWQpT256n) |
+| VOC2007     | YOLO_v2 | YOLO_v3 | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
+|-------------|---------|---------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Darknet53   |         |         |                                                                             |                                                                             |                                                                             |
+| Darknet19   |         |         |                                                                             |                                                                             |                                                                             |
+| Resnet50    |         |         | [79.7%](https://drive.google.com/open?id=1qZoH0ygWhz3VLbuaAv7eQOTgNHD30kdE) | [81.2%](https://drive.google.com/open?id=1m__f2f3aA_Rj-CBjFX2RaEbQMJLejUHM)  |                                                                             |
+| VGG16       |         |         | [76.0%](https://drive.google.com/open?id=1TS50uVN-9_WJdyO1ImRAW0HFK11RkVlK) | [80.5%](https://drive.google.com/open?id=1bR79OsJY2cidjcI9L1DbXx2zde5sM2nf) | [77.8%](https://drive.google.com/open?id=1HPotrN0oM0oUQu_o-i_VYRYFlT3PKDrr) |
+| MobilenetV1 |         |         | [72.7%](https://drive.google.com/open?id=1NMxw-bhvHTGThyNl-MKJrsou4n7HyDCG) | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) | [78.4%](https://drive.google.com/open?id=1BVF7OaFcffJkqXbYBj1pj1nvX7ku8a55) |
+| MobilenetV2 |         |         | [73.2%](https://drive.google.com/open?id=1SBeSIFv5z9AUtwcrJgPI4Xpc8-BCN6ro) | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) | [76.7%](https://drive.google.com/open?id=1t7kxurvfbXNYbFR64EULFSabWQpT256n) |
 
 
-| COCO2017    | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
-|-------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| VGG16       | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [27.2%](https://drive.google.com/open?id=1qf5ccFDp2TVP-7xUggrabfWwwYt5BTrG) |
-| MobilenetV1 | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | [24.2%](https://drive.google.com/open?id=1jRDwuXIeST4F5UBY2Z379nvkxz_OtxVd) |
-| MobilenetV2 | [18.5%](https://drive.google.com/open?id=1FXjPnJ3X7PdH7Ii6lOEFA8EkKif4Ppnn) | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
+
+| COCO2017    | YOLO_v2 | YOLO_v3 | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
+|-------------|---------|---------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| Darknet53   |         |         |                                                                             |                                                                             |                                                                             |
+| Darknet19   | [21.6%](https://drive.google.com/open?id=1Os3__ks3BcBZBSbVRKF8e6BvBMEWn9hy) |         |                                                                             |                                                                             |                                                                             |
+| Resnet50    |         |         | [25.1%](https://drive.google.com/open?id=1Ahj27wzDWSMCTlpcO_eyEXO0zRQSmPn8) | [26.5%](https://drive.google.com/open?id=1X-OkVZHDS1w6pe2mPgJPYPm2_-ZG0_KB) | [27.2%](https://drive.google.com/open?id=12EsRdIZtTM3Wh8UI3VLXQAq6-24SZRpj) |
+| VGG16       |         |         | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [27.2%](https://drive.google.com/open?id=1qf5ccFDp2TVP-7xUggrabfWwwYt5BTrG) |
+| MobilenetV1 |         |         | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | [24.2%](https://drive.google.com/open?id=1jRDwuXIeST4F5UBY2Z379nvkxz_OtxVd) |
+| MobilenetV2 |         |         | [18.5%](https://drive.google.com/open?id=1FXjPnJ3X7PdH7Ii6lOEFA8EkKif4Ppnn) | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
+
 
 | Net InferTime* (300px/fp32) | SSD    | RFB    | FSSD   |
 |-----------------------------|--------|--------|--------|
@@ -70,7 +78,8 @@ In fact, the speed of vgg is super impress me. Maybe it is caused by MobilenetV1
 ![pr_curve](./doc/imgs/pr_curve.jpg)
 (*guess the dataset in the figure, coco or voc?)
 
-- visualize weight (coming soon & any suggestion?)
+- visualize featuremap and grads (not satisfy me, does not give me any information. any suggestions? )
+![feature_map_visualize](./doc/imgs/feature_map_visualize.png)
 
 ## TODO
 - add DSSDs: DSSD FPN TDM

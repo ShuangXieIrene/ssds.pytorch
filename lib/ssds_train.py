@@ -92,9 +92,9 @@ class Solver(object):
         with open(os.path.join(self.output_dir, 'checkpoint_list.txt'), 'a') as f:
             f.write('epoch {epoch:d}: {filename}\n'.format(epoch=epochs, filename=filename))
         print('Wrote snapshot to: {:s}'.format(filename))
-        
+
         # TODO: write relative cfg under the same page
-    
+
     def resume_checkpoint(self, resume_checkpoint):
         if resume_checkpoint == '' or not os.path.isfile(resume_checkpoint):
             print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
@@ -102,18 +102,18 @@ class Solver(object):
         print(("=> loading checkpoint '{:s}'".format(resume_checkpoint)))
         checkpoint = torch.load(resume_checkpoint)
 
-        print("=> Weigths in the checkpoints:")
-        print([k for k, v in list(checkpoint.items())])
+        # print("=> Weigths in the checkpoints:")
+        # print([k for k, v in list(checkpoint.items())])
 
         # remove the module in the parrallel model
-        if 'module.' in list(checkpoint.items())[0][0]: 
+        if 'module.' in list(checkpoint.items())[0][0]:
             pretrained_dict = {'.'.join(k.split('.')[1:]): v for k, v in list(checkpoint.items())}
-            checkpoint = pretrained_dict   
+            checkpoint = pretrained_dict
 
         # change the name of the weights which exists in other model
         # change_dict = {
-        #         'conv1.weight':'base.0.weight', 
-        #         'bn1.running_mean':'base.1.running_mean', 
+        #         'conv1.weight':'base.0.weight',
+        #         'bn1.running_mean':'base.1.running_mean',
         #         'bn1.running_var':'base.1.running_var',
         #         'bn1.bias':'base.1.bias',
         #         'bn1.weight':'base.1.weight',
@@ -144,17 +144,18 @@ class Solver(object):
             checkpoint = pretrained_dict
 
         pretrained_dict = {k: v for k, v in checkpoint.items() if k in self.model.state_dict()}
-        print("=> Resume weigths:")
-        print([k for k, v in list(pretrained_dict.items())])
+        # print("=> Resume weigths:")
+        # print([k for k, v in list(pretrained_dict.items())])
 
         checkpoint = self.model.state_dict()
 
         unresume_dict = set(checkpoint)-set(pretrained_dict)
-        print("=> UNResume weigths:")
-        print(unresume_dict)
+        if len(unresume_dict) != 0:
+            print("=> UNResume weigths:")
+            print(unresume_dict)
 
-        checkpoint.update(pretrained_dict) 
-        
+        checkpoint.update(pretrained_dict)
+
         return self.model.load_state_dict(checkpoint)
 
 
@@ -184,16 +185,17 @@ class Solver(object):
 
     def initialize(self):
         # TODO: ADD INIT ways
-        for module in self.cfg.TRAIN.TRAINABLE_SCOPE.split(','):
-            if hasattr(self.model, module):
-                getattr(self.model, module).apply(self.weights_init)
+        # raise ValueError("Fan in and fan out can not be computed for tensor with less than 2 dimensions")
+        # for module in self.cfg.TRAIN.TRAINABLE_SCOPE.split(','):
+        #     if hasattr(self.model, module):
+        #         getattr(self.model, module).apply(self.weights_init)
         if self.checkpoint:
             print('Loading initial model weights from {:s}'.format(self.checkpoint))
-            self.resume_checkpoint(self.checkpoint)        
+            self.resume_checkpoint(self.checkpoint)
 
         start_epoch = 0
         return start_epoch
-    
+
     def trainable_param(self, trainable_scope):
         for param in self.model.parameters():
             param.requires_grad = False
@@ -205,7 +207,7 @@ class Solver(object):
                 for param in getattr(self.model, module).parameters():
                     param.requires_grad = True
                 trainable_param.extend(getattr(self.model, module).parameters())
-                    
+
         return trainable_param
 
     def train_model(self):
@@ -218,8 +220,7 @@ class Solver(object):
 
         # export graph for the model, onnx always not works
         # self.export_graph()
-        # export prior box
-        # self.export_prior_box()
+
         # warm_up epoch
         warm_up = self.cfg.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
         for epoch in iter(range(start_epoch+1, self.max_epochs+1)):
@@ -240,9 +241,6 @@ class Solver(object):
                 self.save_checkpoints(epoch)
 
     def test_model(self):
-        # export graph for the model, onnx always not works
-        # self.export_graph()
-        
         previous = self.find_previous()
         if previous:
             for epoch, resume_checkpoint in zip(previous[0], previous[1]):
@@ -253,6 +251,8 @@ class Solver(object):
                         self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
                     if 'test' in cfg.PHASE:
                         self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
+                    if 'visualize' in cfg.PHASE:
+                        self.visualize_epoch(self.model, self.visualize_loader, self.priorbox, self.writer, epoch,  self.use_gpu)
         else:
             sys.stdout.write('\rCheckpoint {}:\n'.format(self.checkpoint))
             self.resume_checkpoint(self.checkpoint)
@@ -260,6 +260,8 @@ class Solver(object):
                 self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, 0, self.use_gpu)
             if 'test' in cfg.PHASE:
                 self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
+            if 'visualize' in cfg.PHASE:
+                self.visualize_epoch(self.model, self.visualize_loader, self.priorbox, self.writer, 0,  self.use_gpu)
 
 
     def train_epoch(self, model, data_loader, optimizer, criterion, writer, epoch, use_gpu):
@@ -267,10 +269,6 @@ class Solver(object):
 
         epoch_size = len(data_loader)
         batch_iterator = iter(data_loader)
-        
-        # allow to write the preprocess prgrass in tensorboard
-        # could not work...
-        # data_loader.dataset.preproc.add_writer(writer, epoch)
 
         loc_loss = 0
         conf_loss = 0
@@ -306,9 +304,9 @@ class Solver(object):
 
             # log per iter
             log = '\r==>Train: || {iters:d}/{epoch_size:d} in {time:.3f}s [{prograss}] || loc_loss: {loc_loss:.4f} cls_loss: {cls_loss:.4f}\r'.format(
-                    prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size, 
+                    prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size,
                     time=time, loc_loss=loss_l.data[0], cls_loss=loss_c.data[0])
-            
+
             sys.stdout.write(log)
             sys.stdout.flush()
 
@@ -320,13 +318,13 @@ class Solver(object):
                 time=_t.total_time, loc_loss=loc_loss/epoch_size, conf_loss=conf_loss/epoch_size)
         sys.stdout.write(log)
         sys.stdout.flush()
-        
+
         # log for tensorboard
         writer.add_scalar('Train/loc_loss', loc_loss/epoch_size, epoch)
         writer.add_scalar('Train/conf_loss', conf_loss/epoch_size, epoch)
         writer.add_scalar('Train/lr', lr, epoch)
 
-    
+
     def eval_epoch(self, model, data_loader, detector, criterion, writer, epoch, use_gpu):
         model.eval()
 
@@ -344,7 +342,7 @@ class Solver(object):
         npos = [0] * model.num_classes
 
         for iteration in iter(range((epoch_size))):
-        # for iteration in iter(range((10))):        
+        # for iteration in iter(range((10))):
             images, targets = next(batch_iterator)
             if use_gpu:
                 images = Variable(images.cuda())
@@ -356,7 +354,7 @@ class Solver(object):
             _t.tic()
             # forward
             out = model(images, phase='train')
-            
+
             # loss
             loss_l, loss_c = criterion(out, targets)
 
@@ -375,9 +373,9 @@ class Solver(object):
 
             # log per iter
             log = '\r==>Eval: || {iters:d}/{epoch_size:d} in {time:.3f}s [{prograss}] || loc_loss: {loc_loss:.4f} cls_loss: {cls_loss:.4f}\r'.format(
-                    prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size, 
+                    prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size,
                     time=time, loc_loss=loss_l.data[0], cls_loss=loss_c.data[0])
-            
+
             sys.stdout.write(log)
             sys.stdout.flush()
 
@@ -391,7 +389,7 @@ class Solver(object):
                 time=_t.total_time, loc_loss=loc_loss/epoch_size, conf_loss=conf_loss/epoch_size)
         sys.stdout.write(log)
         sys.stdout.flush()
-        
+
         # log for tensorboard
         writer.add_scalar('Eval/loc_loss', loc_loss/epoch_size, epoch)
         writer.add_scalar('Eval/conf_loss', conf_loss/epoch_size, epoch)
@@ -402,7 +400,7 @@ class Solver(object):
     # TODO: HOW TO MAKE THE DATALOADER WITHOUT SHUFFLE
     # def test_epoch(self, model, data_loader, detector, output_dir, use_gpu):
     #     # sys.stdout.write('\r===> Eval mode\n')
-        
+
     #     model.eval()
 
     #     num_images = len(data_loader.dataset)
@@ -450,7 +448,7 @@ class Solver(object):
 
     #         # log per iter
     #         log = '\r==>Test: || {iters:d}/{epoch_size:d} in {time:.3f}s [{prograss}]\r'.format(
-    #                 prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size, 
+    #                 prograss='#'*int(round(10*iteration/epoch_size)) + '-'*int(round(10*(1-iteration/epoch_size))), iters=iteration, epoch_size=epoch_size,
     #                 time=time)
     #         sys.stdout.write(log)
     #         sys.stdout.flush()
@@ -458,7 +456,7 @@ class Solver(object):
     #     # write result to pkl
     #     with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
     #         pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
-        
+
     #     print('Evaluating detections')
     #     data_loader.dataset.evaluate_detections(all_boxes, output_dir)
 
@@ -507,7 +505,7 @@ class Solver(object):
 
             # log per iter
             log = '\r==>Test: || {iters:d}/{epoch_size:d} in {time:.3f}s [{prograss}]\r'.format(
-                    prograss='#'*int(round(10*i/num_images)) + '-'*int(round(10*(1-i/num_images))), iters=i, epoch_size=num_images, 
+                    prograss='#'*int(round(10*i/num_images)) + '-'*int(round(10*(1-i/num_images))), iters=i, epoch_size=num_images,
                     time=time)
             sys.stdout.write(log)
             sys.stdout.flush()
@@ -515,10 +513,11 @@ class Solver(object):
         # write result to pkl
         with open(os.path.join(output_dir, 'detections.pkl'), 'wb') as f:
             pickle.dump(all_boxes, f, pickle.HIGHEST_PROTOCOL)
-        
+
         # currently the COCO dataset do not return the mean ap or ap 0.5:0.95 values
         print('Evaluating detections')
         data_loader.dataset.evaluate_detections(all_boxes, output_dir)
+
 
     def visualize_epoch(self, model, data_loader, priorbox, writer, epoch, use_gpu):
         model.eval()
@@ -529,27 +528,31 @@ class Solver(object):
         image = data_loader.dataset.pull_image(img_index)
         anno = data_loader.dataset.pull_anno(img_index)
 
+        # visualize archor box
+        viz_prior_box(writer, priorbox, image, epoch)
+
         # get preproc
         preproc = data_loader.dataset.preproc
         preproc.add_writer(writer, epoch)
-
-        # visualize archor box
-        viz_prior_box(writer, priorbox, image, epoch)
+        # preproc.p = 0.6
 
         # preproc image & visualize preprocess prograss
         images = Variable(preproc(image, anno)[0].unsqueeze(0), volatile=True)
         if use_gpu:
             images = images.cuda()
-        
-        # visualzie base feature
-        # viz_base_layer(writer, model, images, epoch)
 
-        # visualize feature extractor
-        # out = model(images, phase='feature')
-        # viz_feature_extractor(writer, out, epoch)
+        # visualize feature map in base and extras
+        base_out = viz_module_feature_maps(writer, model.base, images, module_name='base', epoch=epoch)
+        extras_out = viz_module_feature_maps(writer, model.extras, base_out, module_name='extras', epoch=epoch)
+        # visualize feature map in feature_extractors
+        viz_feature_maps(writer, model(images, 'feature'), module_name='feature_extractors', epoch=epoch)
+
+        model.train()
+        images.requires_grad = True
+        images.volatile=False
+        base_out = viz_module_grads(writer, model, model.base, images, images, preproc.means, module_name='base', epoch=epoch)
 
         # TODO: add more...
-
 
 
     def configure_optimizer(self, trainable_param, cfg):
@@ -566,6 +569,7 @@ class Solver(object):
             AssertionError('optimizer can not be recognized.')
         return optimizer
 
+
     def configure_lr_scheduler(self, optimizer, cfg):
         if cfg.SCHEDULER == 'step':
             scheduler = lr_scheduler.StepLR(optimizer, step_size=cfg.STEPS[0], gamma=cfg.GAMMA)
@@ -578,7 +582,7 @@ class Solver(object):
         else:
             AssertionError('scheduler can not be recognized.')
         return scheduler
-        
+
 
     def export_graph(self):
         self.model.train(False)
@@ -591,24 +595,6 @@ class Solver(object):
         # if not os.path.exists(cfg.EXP_DIR):
         #     os.makedirs(cfg.EXP_DIR)
         # self.writer.add_graph(self.model, (dummy_input, ))
-
-
-
-    # def draw_bounding_box(self, img, ground_truth, predictions, iteration, tag='image'):
-    #     scale = torch.Tensor([img.shape[1], img.shape[0],
-    #                          img.shape[1], img.shape[0]])
-    #     pred_bbxs = get_correct_detection(predictions, ground_truth) * scale
-    #     gt_bbxs = ground_truth[0] * scale
-    #     for gt_bbxs_c in gt_bbxs:
-    #         for bbx in gt_bbxs_c:
-    #             cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 0, 255), 5)
-    #     for pred_bbxs_c in pred_bbxs:
-    #         for bbx in pred_bbxs_c:
-    #             cv2.rectangle(img, (bbx[0], bbx[1]), (bbx[2], bbx[3]), (0, 255, 0), 5)
-    #     self.writer.add_image(tag, img, iteration)
-
-    def predict(self, img):
-        return True
 
 
 def train_model():
