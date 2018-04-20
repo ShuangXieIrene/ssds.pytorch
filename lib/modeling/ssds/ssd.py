@@ -69,10 +69,12 @@ class SSD(nn.Module):
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
+            # TODO:maybe donot needs the relu here
             x = F.relu(v(x), inplace=True)
+            # TODO:lite is different in here, should be changed
             if k % 2 == 1:
                 sources.append(x)
-
+        
         if phase == 'feature':
             return sources
 
@@ -95,28 +97,75 @@ class SSD(nn.Module):
             )
         return output
 
-def add_extras(base, feature_layer, mbox, num_classes):
+def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
     loc_layers = []
     conf_layers = []
     in_channels = None
     for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
-        if layer == 'S':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
-            in_channels = depth
-        elif layer == '':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
-            in_channels = depth
-        else:
-            in_channels = depth
+        if 'lite' in version:
+            if layer == 'S':
+                extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
+                in_channels = depth
+            elif layer == '':
+                extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
+                in_channels = depth
+            else:
+                in_channels = depth
+        else:    
+            if layer == 'S':
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+                in_channels = depth
+            elif layer == '':
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+                in_channels = depth
+            else:
+                in_channels = depth
+        
         loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (loc_layers, conf_layers)
 
+# based on the implementation in https://github.com/tensorflow/models/blob/master/research/object_detection/models/feature_map_generators.py#L213
+# when the expand_ratio is 1, the implemetation is nearly same. Since the shape is always change, I do not add the shortcut as what mobilenetv2 did.
+def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
+    return nn.Sequential(
+        # pw
+        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # dw
+        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # pw-linear
+        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+    )
+
+def _conv(inp, oup, stride=1, padding=0):
+    return nn.Sequential(
+        nn.Conv2d(inp, oup, 3, stride, padding, bias=False),
+        nn.BatchNorm2d(oup),
+        nn.ReLU(inplace=True),
+    )
+
+
 def build_ssd(base, feature_layer, mbox, num_classes):
-    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
+    """Single Shot Multibox Architecture
+    See: https://arxiv.org/pdf/1512.02325.pdf for more details.
+    """
+    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='ssd')
+    return SSD(base_, extras_, head_, feature_layer, num_classes)
+
+def build_ssd_lite(base, feature_layer, mbox, num_classes):
+    """Single Shot Multibox Architecture for embeded system
+    See: https://arxiv.org/pdf/1512.02325.pdf & 
+    https://arxiv.org/pdf/1801.04381.pdf for more details.
+    """
+    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='ssd_lite')
     return SSD(base_, extras_, head_, feature_layer, num_classes)

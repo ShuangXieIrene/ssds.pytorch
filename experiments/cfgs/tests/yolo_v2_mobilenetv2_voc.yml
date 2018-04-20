@@ -2,7 +2,7 @@ MODEL:
   SSDS: yolo_v2
   NETS: mobilenet_v2
   IMAGE_SIZE: [416, 416]
-  NUM_CLASSES: 81
+  NUM_CLASSES: 21
   FEATURE_LAYER: [[['', '',13, '']], [[1024, 1024, 64, 1024]]]
   SIZES: [[416, 416]]
   ASPECT_RATIOS: [[[0.1,0.1], [0.2,0.2], [0.3,0.3], [0.5,0.5], [0.9,0.9]]]
@@ -10,8 +10,8 @@ MODEL:
 TRAIN:
   MAX_EPOCHS: 100
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 28
-  TRAINABLE_SCOPE: 'base,extras,loc,conf'
+  BATCH_SIZE: 16
+  TRAINABLE_SCOPE: 'extras,loc,conf'
   RESUME_SCOPE: 'base,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
@@ -20,7 +20,7 @@ TRAIN:
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 55
+    WARM_UP_EPOCHS: 40
 
 TEST:
   BATCH_SIZE: 64
@@ -37,13 +37,13 @@ POST_PROCESS:
   MAX_DETECTIONS: 100
 
 DATASET:
-  DATASET: 'coco'
-  DATASET_DIR: './data/COCO'
-  TRAIN_SETS: [['2017', 'train']]
-  TEST_SETS:  [['2017', 'val']]
+  DATASET: 'voc'
+  DATASET_DIR: './data/VOCdevkit'
+  TRAIN_SETS: [['2007', 'trainval'], ['2012', 'trainval']]
+  TEST_SETS:  [['2007', 'test']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/yolo_v2_mobilenetv2_coco'
-LOG_DIR: './experiments/models/yolo_v2_mobilenetv2_coco'
-RESUME_CHECKPOINT: './weights/ssd_lite/mobilenet_v2_ssd_lite_coco_18.5.pth'
+EXP_DIR: './experiments/models/yolo_v2_mobilenetv2_voc'
+LOG_DIR: './experiments/models/yolo_v2_mobilenetv2_voc'
+RESUME_CHECKPOINT: './weights/yolo/yolo_v2_mobilenet_v2_coco_epoch_100.pth'
 PHASE: ['test']

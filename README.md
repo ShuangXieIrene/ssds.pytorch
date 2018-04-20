@@ -32,30 +32,33 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 
 | VOC2007     | YOLO_v2 | YOLO_v3 | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
 |-------------|---------|---------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Darknet53   |         |         |                                                                             |                                                                             |                                                                             |
+| Darknet53   |         | [79.3%](https://drive.google.com/open?id=1lgPvaLr700C2dvvtroVS4zJmfxu-nfQ4) |                                                                             |                                                                             |                                                                             |
 | Darknet19   | [78.4%](https://drive.google.com/open?id=1QJnc6wHaVOVeNLCcm6io73_JW0wRJm2m) |         |                                                                             |                                                                             |                                                                             |
 | Resnet50    |         |         | [79.7%](https://drive.google.com/open?id=1qZoH0ygWhz3VLbuaAv7eQOTgNHD30kdE) | [81.2%](https://drive.google.com/open?id=1m__f2f3aA_Rj-CBjFX2RaEbQMJLejUHM)  |                                                                             |
 | VGG16       |         |         | [76.0%](https://drive.google.com/open?id=1TS50uVN-9_WJdyO1ImRAW0HFK11RkVlK) | [80.5%](https://drive.google.com/open?id=1bR79OsJY2cidjcI9L1DbXx2zde5sM2nf) | [77.8%](https://drive.google.com/open?id=1HPotrN0oM0oUQu_o-i_VYRYFlT3PKDrr) |
-| MobilenetV1 |         |         | [72.7%](https://drive.google.com/open?id=1NMxw-bhvHTGThyNl-MKJrsou4n7HyDCG) | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) | [78.4%](https://drive.google.com/open?id=1BVF7OaFcffJkqXbYBj1pj1nvX7ku8a55) |
-| MobilenetV2 |         |         | [73.2%](https://drive.google.com/open?id=1SBeSIFv5z9AUtwcrJgPI4Xpc8-BCN6ro) | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) | [76.7%](https://drive.google.com/open?id=1t7kxurvfbXNYbFR64EULFSabWQpT256n) |
+| MobilenetV1 | [74.7%](https://drive.google.com/open?id=1hTSphBtcszTBU_yGd1GCej-nfqM3vWcn) | [78.2%](https://drive.google.com/open?id=19dTKYxPwDjdo9bqnIqhx_IcqK-IAln5J) | [72.7%](https://drive.google.com/open?id=1NMxw-bhvHTGThyNl-MKJrsou4n7HyDCG) | [73.7%](https://drive.google.com/open?id=1DWleN7Rcf92QYVAoeSxUeK7COXD4cuPN) | [78.4%](https://drive.google.com/open?id=1BVF7OaFcffJkqXbYBj1pj1nvX7ku8a55) |
+| MobilenetV2 | [72.0%](https://drive.google.com/open?id=1cBy3ISmwfnM0ziRD-sEM5ARcgp3ANvQj) | [75.8%](https://drive.google.com/open?id=1xqo6PHn6V3YBkYAKgL7v6a_aqBoRqa2i) | [73.2%](https://drive.google.com/open?id=1SBeSIFv5z9AUtwcrJgPI4Xpc8-BCN6ro) | [73.4%](https://drive.google.com/open?id=1KUh1uvCJS_qEgq1r3t0VEYVge8K8tEzR) | [76.7%](https://drive.google.com/open?id=1t7kxurvfbXNYbFR64EULFSabWQpT256n) |
 
 
 
 | COCO2017    | YOLO_v2 | YOLO_v3 | SSD                                                                         | RFB                                                                         | FSSD                                                                        |
 |-------------|---------|---------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| Darknet53   |         |         |                                                                             |                                                                             |                                                                             |
+| Darknet53   |         | [27.3%](https://drive.google.com/open?id=1Y07Emhi-a7WiwPwHqym6KrZ3VXJtbpw9) |                                                                             |                                                                             |                                                                             |
 | Darknet19   | [21.6%](https://drive.google.com/open?id=1Os3__ks3BcBZBSbVRKF8e6BvBMEWn9hy) |         |                                                                             |                                                                             |                                                                             |
 | Resnet50    |         |         | [25.1%](https://drive.google.com/open?id=1Ahj27wzDWSMCTlpcO_eyEXO0zRQSmPn8) | [26.5%](https://drive.google.com/open?id=1X-OkVZHDS1w6pe2mPgJPYPm2_-ZG0_KB) | [27.2%](https://drive.google.com/open?id=12EsRdIZtTM3Wh8UI3VLXQAq6-24SZRpj) |
 | VGG16       |         |         | [25.4%](https://drive.google.com/open?id=1Bkt_nZW4fe_UrLyPOVltq0C7cTpABlQI) | [25.5%](https://drive.google.com/open?id=1j5G0dDuvofGh5POUPk0s9ys8by0wEDFL) | [27.2%](https://drive.google.com/open?id=1qf5ccFDp2TVP-7xUggrabfWwwYt5BTrG) |
-| MobilenetV1 |         |         | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | [24.2%](https://drive.google.com/open?id=1jRDwuXIeST4F5UBY2Z379nvkxz_OtxVd) |
-| MobilenetV2 |         |         | [18.5%](https://drive.google.com/open?id=1FXjPnJ3X7PdH7Ii6lOEFA8EkKif4Ppnn) | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
+| MobilenetV1 | [21.5%](https://drive.google.com/open?id=1ZdiWfBvqBI8ICPP9p4UsQCgY5pSBJxTa) | [25.7%](https://drive.google.com/open?id=1j7Co11dfT_OJIwAqNpTgjIA-I-btlOXc) | [18.8%](https://drive.google.com/open?id=1yBpd3aIDvlK2j7HxsNj8kJuASTCaN5Bo) | [19.1%](https://drive.google.com/open?id=1SexO9XZFpMK2JGmr0mTGqosud-tb2wNe) | [24.2%](https://drive.google.com/open?id=1jRDwuXIeST4F5UBY2Z379nvkxz_OtxVd) |
+| MobilenetV2 | [20.4%](https://drive.google.com/open?id=1mr1KhqW2FkkBNKGeoaWlB_D0dDLwL05L) | [24.0%](https://drive.google.com/open?id=1-jV9TtRdwrwUrvtmx1z8BLJRGv_lmF-6) | [18.5%](https://drive.google.com/open?id=1FXjPnJ3X7PdH7Ii6lOEFA8EkKif4Ppnn) | [18.5%](https://drive.google.com/open?id=1uRfoi6iJo8Vd5yYMhzFJ97_l3NLtQhf-) | [22.2%](https://drive.google.com/open?id=1lOOjp4ZG1tkggSIbilT5ajKUJ-a-GRMK) |
 
 
-| Net InferTime* (300px/fp32) | SSD    | RFB    | FSSD   |
-|-----------------------------|--------|--------|--------|
-| VGG16                       | 1.78ms | 4.20ms | 1.98ms |
-| MobilenetV1                 | 2.87ms | 3.84ms | 2.62ms |
-| MobilenetV2                 | 4.18ms | 5.28ms | 4.02ms |
+| Net InferTime* (fp32) | YOLO_v2 | YOLO_v3 | SSD    | RFB    | FSSD   |
+|-----------------------|---------|---------|--------|--------|--------|
+| Darknet53             |         | 5.6ms   |        |        |        |
+| Darknet19             | 1.9ms   |         |        |        |        |
+| Resnet50              |         |         |        |        |        |
+| VGG16                 |         |         | 1.78ms | 4.20ms | 1.98ms |
+| MobilenetV1           |         | 3.8ms   | 2.87ms | 3.84ms | 2.62ms |
+| MobilenetV2           |         | 5.1ms   | 4.18ms | 5.28ms | 4.02ms |
 
 (*-only calculate the all network inference time, without pre-processing & post-processing. 
 In fact, the speed of vgg is super impress me. Maybe it is caused by MobilenetV1 and MobilenetV2 is using -lite structure, which uses the seperate conv in the base and extra layers.)

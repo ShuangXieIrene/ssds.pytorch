@@ -45,5 +45,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/yolo_v2_mobilenetv2_coco'
 LOG_DIR: './experiments/models/yolo_v2_mobilenetv2_coco'
-RESUME_CHECKPOINT: './weights/ssd_lite/mobilenet_v2_ssd_lite_coco_18.5.pth'
+RESUME_CHECKPOINT: './weights/yolo/mobilenet_v2_yolo_v2_coco_20.4.pth'
 PHASE: ['test']

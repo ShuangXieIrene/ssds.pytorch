@@ -48,7 +48,8 @@ class ObjectDetector:
         if cfg.RESUME_CHECKPOINT == '':
             AssertionError('RESUME_CHECKPOINT can not be empty')
         print('=> loading checkpoint {:s}'.format(cfg.RESUME_CHECKPOINT))
-        checkpoint = torch.load(cfg.RESUME_CHECKPOINT, map_location='gpu' if self.use_gpu else 'cpu')
+        checkpoint = torch.load(cfg.RESUME_CHECKPOINT)
+        # checkpoint = torch.load(cfg.RESUME_CHECKPOINT, map_location='gpu' if self.use_gpu else 'cpu')
         self.model.load_state_dict(checkpoint)
 
         # test only

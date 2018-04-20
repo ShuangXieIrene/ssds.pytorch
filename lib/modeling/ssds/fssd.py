@@ -73,10 +73,12 @@ class FSSD(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = v(x)
+            #TODO: different with lite this one should be change
             if k % 2 == 1:
                 sources.append(x)
         assert len(self.transforms) == len(sources)
         upsize = (sources[0].size()[2], sources[0].size()[3])
+
         for k, v in enumerate(self.transforms):
             size = None if k == 0 else upsize
             transformed.append(v(sources[k], size))
@@ -129,7 +131,22 @@ class BasicConv(nn.Module):
             # x = self.up_sample(x)
         return x
 
-def add_extras(base, feature_layer, mbox, num_classes):
+def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
+    return nn.Sequential(
+        # pw
+        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # dw
+        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
+        nn.BatchNorm2d(oup * expand_ratio),
+        nn.ReLU6(inplace=True),
+        # pw-linear
+        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
+        nn.BatchNorm2d(oup),
+    )
+
+def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
     feature_transform_layers = []
     pyramid_feature_layers = []
@@ -138,18 +155,28 @@ def add_extras(base, feature_layer, mbox, num_classes):
     in_channels = None
     feature_transform_channel = int(feature_layer[0][1][-1]/2)
     for layer, depth in zip(feature_layer[0][0], feature_layer[0][1]):
-        if layer == 'S':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
-            in_channels = depth
-        elif layer == '':
-            extra_layers += [
-                    nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                    nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
-            in_channels = depth
+        if 'lite' in version:
+            if layer == 'S':
+                extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
+                in_channels = depth
+            elif layer == '':
+                extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
+                in_channels = depth
+            else:
+                in_channels = depth
         else:
-            in_channels = depth
+            if layer == 'S':
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+                in_channels = depth
+            elif layer == '':
+                extra_layers += [
+                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
+                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+                in_channels = depth
+            else:
+                in_channels = depth
         feature_transform_layers += [BasicConv(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
     
     in_channels = len(feature_transform_layers) * feature_transform_channel
@@ -168,5 +195,9 @@ def add_extras(base, feature_layer, mbox, num_classes):
     return base, extra_layers, (feature_transform_layers, pyramid_feature_layers), (loc_layers, conf_layers)
 
 def build_fssd(base, feature_layer, mbox, num_classes):
-    base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
+    base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='fssd')
+    return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)
+
+def build_fssd_lite(base, feature_layer, mbox, num_classes):
+    base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='fssd_lite')
     return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)

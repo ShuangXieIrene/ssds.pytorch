@@ -1,9 +1,9 @@
 MODEL:
   SSDS: yolo_v3
-  NETS: darknet_53
+  NETS: mobilenet_v2
   IMAGE_SIZE: [416, 416]
   NUM_CLASSES: 81
-  FEATURE_LAYER: [[['B','B','B'], [23,'B','B','B'], [14,'B','B','B']],
+  FEATURE_LAYER: [[['B','B','B'], [13,'B','B','B'], [6,'B','B','B']],
                   [[1024,1024,1024], [256, 512, 512, 512], [128, 256, 256, 256]]]
   SIZES: [[416, 416], [416, 416], [416, 416]]
   ASPECT_RATIOS: [[[0.278,0.216], [0.375,0.475], [0.896,0.783]],
@@ -11,23 +11,23 @@ MODEL:
                   [[0.024,0.031], [0.038,0.072], [0.079,0.055]], ]
 
 TRAIN:
-  MAX_EPOCHS: 200
+  MAX_EPOCHS: 100
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 12
+  BATCH_SIZE: 16
   TRAINABLE_SCOPE: 'base,extras,loc,conf'
   RESUME_SCOPE: 'base,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
-    LEARNING_RATE: 0.001
+    LEARNING_RATE: 0.004
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 80
+    WARM_UP_EPOCHS: 50
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [191, 200]
+  TEST_SCOPE: [90, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -46,7 +46,7 @@ DATASET:
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/yolo_v3_darknet_53_coco'
-LOG_DIR: './experiments/models/yolo_v3_darknet_53_coco'
-RESUME_CHECKPOINT: './weights/dark/yolov3.pth'
+EXP_DIR: './experiments/models/yolo_v3_mobilenetv2_coco'
+LOG_DIR: './experiments/models/yolo_v3_mobilenetv2_coco'
+RESUME_CHECKPOINT: './weights/yolo/mobilenet_v2_yolo_v3_coco_24.0.pth'
 PHASE: ['test']

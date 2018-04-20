@@ -48,5 +48,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/yolo_v3_darknet_53_coco'
 LOG_DIR: './experiments/models/yolo_v3_darknet_53_coco'
-RESUME_CHECKPOINT: './weights/dark/yolov3.pth'
+RESUME_CHECKPOINT: './weights/yolo/darknet53_yolo_v3_coco_27.3.pth'
 PHASE: ['test']

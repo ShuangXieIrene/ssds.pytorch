@@ -65,9 +65,7 @@ class RFB(nn.Module):
             feature:
                 the features maps of the feature extractor
         """
-        sources = list()
-        loc = list()
-        conf = list()
+        sources, loc, conf = [list() for _ in range(3)]
 
         # apply bases layers and cache source layer outputs
         for k in range(len(self.base)):
@@ -221,36 +219,135 @@ class BasicRFB(nn.Module):
 
         return out
 
-def add_extras(base, feature_layer, mbox, num_classes):
+class BasicRFB_a_lite(nn.Module):
+    def __init__(self, in_planes, out_planes, stride=1, scale = 0.1):
+        super(BasicRFB_a_lite, self).__init__()
+        self.scale = scale
+        self.out_channels = out_planes
+        inter_planes = in_planes //4
+
+        self.branch0 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=1, dilation=1, relu=False)
+                )
+        self.branch1 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicConv(inter_planes, inter_planes, kernel_size=(3,1), stride=1, padding=(1,0)),
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                )
+        self.branch2 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicConv(inter_planes, inter_planes, kernel_size=(1,3), stride=stride, padding=(0,1)),
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                )
+        self.branch3 = nn.Sequential(
+                BasicConv(in_planes, inter_planes//2, kernel_size=1, stride=1),
+                BasicConv(inter_planes//2, (inter_planes//4)*3, kernel_size=(1,3), stride=1, padding=(0,1)),
+                BasicConv((inter_planes//4)*3, inter_planes, kernel_size=(3,1), stride=stride, padding=(1,0)),
+                BasicSepConv(inter_planes, kernel_size=3, stride=1, padding=5, dilation=5, relu=False)
+                )
+
+        self.ConvLinear = BasicConv(4*inter_planes, out_planes, kernel_size=1, stride=1, relu=False)
+        self.relu = nn.ReLU(inplace=False)
+
+    def forward(self,x):
+        x0 = self.branch0(x)
+        x1 = self.branch1(x)
+        x2 = self.branch2(x)
+        x3 = self.branch3(x)
+
+        out = torch.cat((x0,x1,x2,x3),1)
+        out = self.ConvLinear(out)
+        out = out*self.scale + x
+        out = self.relu(out)
+
+        return out
+
+class BasicRFB_lite(nn.Module):
+    def __init__(self, in_planes, out_planes, stride=1, scale = 0.1):
+        super(BasicRFB_lite, self).__init__()
+        self.scale = scale
+        self.out_channels = out_planes
+        inter_planes = in_planes // 8
+        self.branch1 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicConv(inter_planes, (inter_planes//2)*3, kernel_size=(1,3), stride=1, padding=(0,1)),
+                BasicConv((inter_planes//2)*3, (inter_planes//2)*3, kernel_size=(3,1), stride=stride, padding=(1,0)),
+                BasicSepConv((inter_planes//2)*3, kernel_size=3, stride=1, padding=3, dilation=3, relu=False)
+                )
+        self.branch2 = nn.Sequential(
+                BasicConv(in_planes, inter_planes, kernel_size=1, stride=1),
+                BasicConv(inter_planes, (inter_planes//2)*3, kernel_size=3, stride=1, padding=1),
+                BasicConv((inter_planes//2)*3, (inter_planes//2)*3, kernel_size=3, stride=stride, padding=1),
+                BasicSepConv((inter_planes//2)*3, kernel_size=3, stride=1, padding=5, dilation=5, relu=False)
+                )
+
+        self.ConvLinear = BasicConv(3*inter_planes, out_planes, kernel_size=1, stride=1, relu=False)
+        if in_planes == out_planes:
+            self.identity = True
+        else:
+            self.identity = False
+            self.shortcut = BasicConv(in_planes, out_planes, kernel_size=1, stride=stride, relu=False)
+        self.relu = nn.ReLU(inplace=False)
+
+    def forward(self,x):
+        x1 = self.branch1(x)
+        x2 = self.branch2(x)
+
+        out = torch.cat((x1,x2),1)
+        out = self.ConvLinear(out)
+        if self.identity:
+            out = out*self.scale + x
+        else:
+            short = self.shortcut(x)
+            out = out*self.scale + short
+        out = self.relu(out)
+        return out
+
+
+def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
     loc_layers = []
     conf_layers = []
     norm_layers = []
     in_channels = None
     for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
-        if layer == 'RBF':
-            extra_layers += [BasicRFB(in_channels, depth, stride=2, scale = 1.0, visual=2)]
-            in_channels = depth
-        elif layer == 'S':
-            extra_layers += [
-                    BasicConv(in_channels, int(depth/2), kernel_size=1),
-                    BasicConv(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
-            in_channels = depth
-        elif layer == '':
-            extra_layers += [
-                    BasicConv(in_channels, int(depth/2), kernel_size=1),
-                    BasicConv(int(depth/2), depth, kernel_size=3)  ]
-            in_channels = depth
+        if 'lite' in version:
+            pass
         else:
-            if len(norm_layers) == 0:
-                norm_layers += [BasicRFB_a(depth, depth, stride = 1, scale=1.0)]
+            if layer == 'RBF':
+                extra_layers += [BasicRFB(in_channels, depth, stride=2, scale = 1.0, visual=2)]
+                in_channels = depth
+            elif layer == 'S':
+                extra_layers += [
+                        BasicConv(in_channels, int(depth/2), kernel_size=1),
+                        BasicConv(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+                in_channels = depth
+            elif layer == '':
+                extra_layers += [
+                        BasicConv(in_channels, int(depth/2), kernel_size=1),
+                        BasicConv(int(depth/2), depth, kernel_size=3)  ]
+                in_channels = depth
             else:
-                norm_layers += [BasicRFB(depth, depth, scale = 1.0, visual=2)]
-            in_channels = depth
+                if len(norm_layers) == 0:
+                    norm_layers += [BasicRFB_a(depth, depth, stride = 1, scale=1.0)]
+                else:
+                    norm_layers += [BasicRFB(depth, depth, scale = 1.0, visual=2)]
+                in_channels = depth
         loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, norm_layers, (loc_layers, conf_layers)
 
 def build_rfb(base, feature_layer, mbox, num_classes):
-    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
+    """Receptive Field Block Net for Accurate and Fast Object Detection for embeded system
+    See: https://arxiv.org/pdf/1711.07767.pdf for more details.
+    """
+    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='rfb')
+    return RFB(base_, extras_, norm_, head_, feature_layer, num_classes)
+
+def build_rfb_lite(base, feature_layer, mbox, num_classes):
+    """Receptive Field Block Net for Accurate and Fast Object Detection for embeded system
+    See: https://arxiv.org/pdf/1711.07767.pdf for more details.
+    """
+    base_, extras_, norm_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='rfb_lite')
     return RFB(base_, extras_, norm_, head_, feature_layer, num_classes)
