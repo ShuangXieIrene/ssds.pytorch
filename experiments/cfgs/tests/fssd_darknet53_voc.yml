@@ -2,7 +2,7 @@ MODEL:
   SSDS: fssd
   NETS: darknet_53
   IMAGE_SIZE: [300, 300]
-  NUM_CLASSES: 81
+  NUM_CLASSES: 21
   FEATURE_LAYER: [[[14, 23, 28], [256, 512, 1024]],
                   [['', 'S', 'S', 'S', '', ''], [512, 512, 256, 256, 256, 256]]]
   STEPS: [[8, 8], [16, 16], [32, 32], [64, 64], [100, 100], [300, 300]]
@@ -26,7 +26,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [100, 100]
+  TEST_SCOPE: [91, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -39,13 +39,13 @@ POST_PROCESS:
   MAX_DETECTIONS: 100
 
 DATASET:
-  DATASET: 'coco'
-  DATASET_DIR: './data/COCO'
-  TRAIN_SETS: [['2017', 'train']]
-  TEST_SETS:  [['2017', 'val']]
+  DATASET: 'voc'
+  DATASET_DIR: './data/VOCdevkit'
+  TRAIN_SETS: [['2007', 'trainval'], ['2012', 'trainval']]
+  TEST_SETS:  [['2007', 'test']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/fssd_darknet_53_coco'
-LOG_DIR: './experiments/models/fssd_darknet_53_coco'
-RESUME_CHECKPOINT: './weights/yolo/darknet53_yolo_v3_coco_27.3.pth'
+EXP_DIR: './experiments/models/fssd_darknet_53_voc'
+LOG_DIR: './experiments/models/fssd_darknet_53_voc'
+RESUME_CHECKPOINT: './experiments/models/fssd_darknet_53_coco/fssd_darknet_53_coco_epoch_98.pth'
 PHASE: ['test']

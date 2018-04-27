@@ -1,18 +1,18 @@
 MODEL:
-  SSDS: rfb
-  NETS: darknet_53
+  SSDS: ssd
+  NETS: darknet_19
   IMAGE_SIZE: [300, 300]
   NUM_CLASSES: 81
-  FEATURE_LAYER: [[23, 28, 'RBF', 'RBF', 'S', 'S'], [512, 1024, 512, 256, 256, 256]]
+  FEATURE_LAYER: [[12, 16, 'S', 'S', 'S', 'S'], [512, 1024, 512, 256, 256, 256]]
   STEPS: [[16, 16], [32, 32], [64, 64], [100, 100], [150, 150], [300, 300]]
   SIZES: [[45, 45], [90, 90], [135, 135], [180, 180], [225, 225], [270, 270], [315, 315]]
   ASPECT_RATIOS: [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
 
 TRAIN:
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 60
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 16
-  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
+  BATCH_SIZE: 32
+  TRAINABLE_SCOPE: 'norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
@@ -21,11 +21,11 @@ TRAIN:
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 55
+    WARM_UP_EPOCHS: 0
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [96, 100]
+  TEST_SCOPE: [91, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -44,7 +44,7 @@ DATASET:
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
-EXP_DIR: './experiments/models/rfb_darknet_53_coco'
-LOG_DIR: './experiments/models/rfb_darknet_53_coco'
-RESUME_CHECKPOINT: './weights/yolo/darknet53_yolo_v3_coco_27.3.pth'
-PHASE: ['test']
+EXP_DIR: './experiments/models/ssd_darknet_19_coco'
+LOG_DIR: './experiments/models/ssd_darknet_19_coco'
+RESUME_CHECKPOINT: './weights/yolo/darknet19_yolo_v2_coco_21.6.pth'
+PHASE: ['train']
