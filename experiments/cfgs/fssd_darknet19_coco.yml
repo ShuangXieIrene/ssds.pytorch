@@ -10,10 +10,10 @@ MODEL:
   ASPECT_RATIOS: [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
 
 TRAIN:
-  MAX_EPOCHS: 60
+  MAX_EPOCHS: 120
   CHECKPOINTS_EPOCHS: 1
   BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'norm,extras,transforms,pyramids,loc,conf'
+  TRAINABLE_SCOPE: 'base,norm,extras,transforms,pyramids,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,transforms,pyramids,loc,conf'
   OPTIMIZER:
     OPTIMIZER: sgd
@@ -22,11 +22,11 @@ TRAIN:
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
     SCHEDULER: SGDR
-    WARM_UP_EPOCHS: 0
+    WARM_UP_EPOCHS: 60
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [91, 100]
+  TEST_SCOPE: [110, 120]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -47,5 +47,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/fssd_darknet_19_coco'
 LOG_DIR: './experiments/models/fssd_darknet_19_coco'
-RESUME_CHECKPOINT: './weights/yolo/darknet19_yolo_v2_coco_21.6.pth'
-PHASE: ['train']
+RESUME_CHECKPOINT: './weights/fssd/darknet19_fssd_coco_26.4.pth'
+PHASE: ['test']

@@ -25,7 +25,7 @@ TRAIN:
 
 TEST:
   BATCH_SIZE: 64
-  TEST_SCOPE: [91, 100]
+  TEST_SCOPE: [98, 100]
 
 MATCHER:
   MATCHED_THRESHOLD: 0.5
@@ -46,5 +46,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/rfb_darknet_19_coco'
 LOG_DIR: './experiments/models/rfb_darknet_19_coco'
-RESUME_CHECKPOINT: './weights/yolo/darknet19_yolo_v2_coco_21.6.pth'
-PHASE: ['train']
+RESUME_CHECKPOINT: './weights/rfb/darknet19_rfb_coco_22.4.pth'
+PHASE: ['test']
