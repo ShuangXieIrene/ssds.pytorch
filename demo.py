@@ -142,10 +142,13 @@ def time_benchmark(args, image_path):
                 print('In {}\{}, total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
                     i-warmup, time_iter, total_time, preprocess_time, net_forward_time, detect_time, output_time
                 ))
-    total_time, preprocess_time, net_forward_time, detect_time, output_time = np.sum(_t, axis=0)/time_iter
-    print('In average, total time: {} \n preprocess: {} \n net_forward: {} \n detect: {} \n output: {}'.format(
+    total_time, preprocess_time, net_forward_time, detect_time, output_time = np.sum(_t, axis=0)/time_iter * 1000 # 1000ms to 1s
+    print('In average, total time: {}ms \n preprocess: {}ms \n net_forward: {}ms \n detect: {}ms \n output: {}ms'.format(
         total_time, preprocess_time, net_forward_time, detect_time, output_time
     ))
+    with open('./time_benchmark.csv', 'a') as f:
+        f.write("{:s},{:.2f}ms,{:.2f}ms,{:.2f}ms,{:.2f}ms,{:.2f}ms\n".format(args.confg_file, total_time, preprocess_time, net_forward_time, detect_time, output_time))
+
 
     
 if __name__ == '__main__':

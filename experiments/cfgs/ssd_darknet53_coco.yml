@@ -46,5 +46,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/ssd_darknet_53_coco'
 LOG_DIR: './experiments/models/ssd_darknet_53_coco'
-RESUME_CHECKPOINT: './weights/ssd/darknet53_ssd_coco_21.1.pth
+RESUME_CHECKPOINT: './weights/ssd/darknet53_ssd_coco_21.1.pth'
 PHASE: ['test']

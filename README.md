@@ -53,12 +53,12 @@ Change the configure file based on the note in [config_parse.py](./lib/utils/con
 
 | Net InferTime* (fp32) | YOLO_v2 | YOLO_v3 | SSD    | RFB    | FSSD   |
 |-----------------------|---------|---------|--------|--------|--------|
-| Darknet53             |         | 5.6ms   |        |        |        |
-| Darknet19             | 1.9ms   |         |        |        |        |
-| Resnet50              |         |         |        |        |        |
-| VGG16                 |         |         | 1.78ms | 4.20ms | 1.98ms |
-| MobilenetV1           |         | 3.8ms   | 2.87ms | 3.84ms | 2.62ms |
-| MobilenetV2           |         | 5.1ms   | 4.18ms | 5.28ms | 4.02ms |
+| Darknet53             |         | 5.11ms  | 4.32ms | 6.63ms | 4.41ms |
+| Darknet19             | 1.64ms  |         | 2.21ms | 4.57ms | 2.29ms |
+| Resnet50              |         |         | 3.60ms | 6.04ms | 3.85ms |
+| VGG16                 |         |         | 1.75ms | 4.20ms | 1.98ms |
+| MobilenetV1           | 2.02ms  | 3.31ms  | 2.80ms | 3.84ms | 2.62ms |
+| MobilenetV2           | 3.35ms  | 4.69ms  | 4.05ms | 5.26ms | 4.00ms |
 
 (*-only calculate the all network inference time, without pre-processing & post-processing. 
 In fact, the speed of vgg is super impress me. Maybe it is caused by MobilenetV1 and MobilenetV2 is using -lite structure, which uses the seperate conv in the base and extra layers.)
