@@ -22,6 +22,7 @@ TRAIN:
   LR_SCHEDULER:
     SCHEDULER: SGDR
     WARM_UP_EPOCHS: 5
+  CRITERION: MultiBoxLoss
 
 TEST:
   BATCH_SIZE: 64
@@ -46,5 +47,5 @@ DATASET:
 
 EXP_DIR: './experiments/models/ssd_vgg16_coco'
 LOG_DIR: './experiments/models/ssd_vgg16_coco'
-RESUME_CHECKPOINT: './weights/ssd/vgg16_ssd_coco_24.4.pth'
+# RESUME_CHECKPOINT: './weights/ssd/vgg16_ssd_coco_24.4.pth'
 PHASE: ['test']
