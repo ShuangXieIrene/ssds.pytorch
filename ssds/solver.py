@@ -2,21 +2,15 @@ import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
+import sys
 from tensorboardX import SummaryWriter
 
-# from lib.layers import *
-# from lib.utils.timer import Timer
-# from lib.utils.data_augment import preproc
-# from lib.modeling.model_builder import create_model
-# from lib.dataset.dataset_factory import load_data
-# from lib.utils.config_parse import cfg
-# from lib.utils.eval_utils import *
-# from lib.utils.visualize_utils import *
-
 from ssds.core import optimizer
+from ssds.core import checkpoint
 from ssds.core.criterion import configure_criterion
-from ssds.modeling.model_builder import create_model
-# from ssds.dataset.dataset_factory import load_data
+from ssds.modeling import model_builder
+from ssds import pipeline
+from ssds.dataset.dataset_factory import load_data
 
 class Solver(object):
     """
@@ -27,14 +21,14 @@ class Solver(object):
 
         # Load data
         print('===> Loading data')
-        # self.train_loader = load_data(cfg.DATASET, 'train') if 'train' in cfg.PHASE else None
+        self.train_loader = load_data(cfg.DATASET, 'train') if 'train' in cfg.PHASE else None
         # self.eval_loader = load_data(cfg.DATASET, 'eval') if 'eval' in cfg.PHASE else None
         # self.test_loader = load_data(cfg.DATASET, 'test') if 'test' in cfg.PHASE else None
         # self.visualize_loader = load_data(cfg.DATASET, 'visualize') if 'visualize' in cfg.PHASE else None
 
         # Build model
         print('===> Building model')
-        self.model = create_model(cfg.MODEL)
+        self.model = model_builder.create_model(cfg.MODEL)
 
         # Utilize GPUs for computation
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,59 +53,43 @@ class Solver(object):
         # Set the logger
         self.writer = SummaryWriter(log_dir=cfg.LOG_DIR)
 
+    def train_model(self):
+        previous = checkpoint.find_previous_checkpoint(self.cfg.EXP_DIR)
+        if previous:
+            start_epoch = previous[0][-1]
+            checkpoint.resume_checkpoint(self.model, previous[1][-1], self.cfg.TRAIN.RESUME_SCOPE)
+        else:
+            start_epoch = 0
+            if self.cfg.RESUME_CHECKPOINT:
+                print('Loading initial model weights from {:s}'.format(self.cfg.RESUME_CHECKPOINT))
+                checkpoint.resume_checkpoint(self.model, self.cfg.RESUME_CHECKPOINT, self.cfg.TRAIN.RESUME_SCOPE)
 
-    # def train_model(self):
-    #     previous = self.find_previous()
-    #     if previous:
-    #         start_epoch = previous[0][-1]
-    #         self.resume_checkpoint(previous[1][-1])
-    #     else:
-    #         start_epoch = self.initialize()
+        if torch.cuda.is_available():
+            print('Utilize GPUs for computation')
+            print('Number of GPU available', torch.cuda.device_count())
+            if self.cfg.DEVICE_ID:
+                self.model = nn.DataParallel(self.model, device_ids=self.cfg.DEVICE_ID)
+            cudnn.benchmark = True
+        self.model.to(self.device)
 
-    #     # export graph for the model, onnx always not works
-    #     # self.export_graph()
+        warm_up = self.cfg.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
+        for epoch in iter(range(start_epoch+1, self.max_epochs+1)):
+            #learning rate
+            sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.max_epochs))
+            if epoch > warm_up:
+                self.exp_lr_scheduler.step(epoch-warm_up)
 
-    #     # warm_up epoch
-    #     warm_up = self.cfg.TRAIN.LR_SCHEDULER.WARM_UP_EPOCHS
-    #     for epoch in iter(range(start_epoch+1, self.max_epochs+1)):
-    #         #learning rate
-    #         sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.max_epochs))
-    #         if epoch > warm_up:
-    #             self.exp_lr_scheduler.step(epoch-warm_up)
-    #         if 'train' in cfg.PHASE:
-    #             self.train_epoch(self.model, self.train_loader, self.optimizer, self.criterion, self.writer, epoch, self.use_gpu)
-    #         if 'eval' in cfg.PHASE:
-    #             self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
-    #         if 'test' in cfg.PHASE:
-    #             self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir, self.use_gpu)
-    #         if 'visualize' in cfg.PHASE:
-    #             self.visualize_epoch(self.model, self.visualize_loader, self.priorbox, self.writer, epoch,  self.use_gpu)
+            # start phases for epoch
+            if 'train_anchor_basic' in self.cfg.PHASE:
+                # TODO: Change cfg.MODEL to cfg.PRIOR
+                priorbox = model_builder.create_priors(self.cfg.MODEL, self.model, self.cfg.IMAGE_SIZE)
+                priors = priorbox().to(self.device)
 
-    #         if epoch % cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
-    #             self.save_checkpoints(epoch)
+                pipeline.train_anchor_basic(self.model, self.train_loader, self.optimizer, self.criterion, priors, self.writer, epoch, self.device)
 
-    # def test_model(self):
-    #     previous = self.find_previous()
-    #     if previous:
-    #         for epoch, resume_checkpoint in zip(previous[0], previous[1]):
-    #             if self.cfg.TEST.TEST_SCOPE[0] <= epoch <= self.cfg.TEST.TEST_SCOPE[1]:
-    #                 sys.stdout.write('\rEpoch {epoch:d}/{max_epochs:d}:\n'.format(epoch=epoch, max_epochs=self.cfg.TEST.TEST_SCOPE[1]))
-    #                 self.resume_checkpoint(resume_checkpoint)
-    #                 if 'eval' in cfg.PHASE:
-    #                     self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, epoch, self.use_gpu)
-    #                 if 'test' in cfg.PHASE:
-    #                     self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
-    #                 if 'visualize' in cfg.PHASE:
-    #                     self.visualize_epoch(self.model, self.visualize_loader, self.priorbox, self.writer, epoch,  self.use_gpu)
-    #     else:
-    #         sys.stdout.write('\rCheckpoint {}:\n'.format(self.checkpoint))
-    #         self.resume_checkpoint(self.checkpoint)
-    #         if 'eval' in cfg.PHASE:
-    #             self.eval_epoch(self.model, self.eval_loader, self.detector, self.criterion, self.writer, 0, self.use_gpu)
-    #         if 'test' in cfg.PHASE:
-    #             self.test_epoch(self.model, self.test_loader, self.detector, self.output_dir , self.use_gpu)
-    #         if 'visualize' in cfg.PHASE:
-    #             self.visualize_epoch(self.model, self.visualize_loader, self.priorbox, self.writer, 0,  self.use_gpu)
+            # save checkpoint
+            if epoch % self.cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
+                checkpoint.save_checkpoints(self.model, self.cfg.EXP_DIR, self.cfg.CHECKPOINTS_PREFIX, epoch)
 
 
 
