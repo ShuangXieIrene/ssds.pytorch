@@ -12,7 +12,7 @@ import cv2
 import numpy as np
 import random
 import math
-from lib.utils.box_utils import matrix_iou
+from ssds.utils.box_utils import matrix_iou
 
 def _crop(image, boxes, labels):
     height, width, _ = image.shape

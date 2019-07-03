@@ -1,9 +1,11 @@
 from __future__ import division
 import torch
+import torch.nn as nn
+
 from math import sqrt as sqrt
 from itertools import product as product
 
-class PriorBox(object):
+class PriorBox(nn.Module):
     """Compute priorbox coordinates in center-offset form for each source
     feature map.
     """

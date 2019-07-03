@@ -64,11 +64,11 @@ class SSDLite(nn.Module):
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                if len(sources) == 0:
-                    s = self.norm(x)
-                    sources.append(s)
-                else:
-                    sources.append(x)
+                # if len(sources) == 0:
+                #     # s = self.norm(x)
+                #     sources.append(s)
+                # else:
+                sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):

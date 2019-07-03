@@ -1,16 +1,21 @@
 import torch
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
+from torch.utils.tensorboard import SummaryWriter
 
 import sys
-from tensorboardX import SummaryWriter
+import argparse
+import os
+sys.path.append(os.getcwd())
 
 from ssds.core import optimizer
 from ssds.core import checkpoint
 from ssds.core.criterion import configure_criterion
 from ssds.modeling import model_builder
-from ssds import pipeline
+from ssds.pipeline.pipeline_anchor_basic import train_anchor_based_epoch
 from ssds.dataset.dataset_factory import load_data
+from ssds.core.config import cfg_from_file
+
 
 class Solver(object):
     """
@@ -80,17 +85,16 @@ class Solver(object):
                 self.exp_lr_scheduler.step(epoch-warm_up)
 
             # start phases for epoch
-            if 'train_anchor_basic' in self.cfg.PHASE:
+            if 'train' in self.cfg.PHASE:
                 # TODO: Change cfg.MODEL to cfg.PRIOR
-                priorbox = model_builder.create_priors(self.cfg.MODEL, self.model, self.cfg.IMAGE_SIZE)
+                priorbox = model_builder.create_priors(self.cfg.MODEL, self.model, self.cfg.MODEL.IMAGE_SIZE)
                 priors = priorbox().to(self.device)
 
-                pipeline.train_anchor_basic(self.model, self.train_loader, self.optimizer, self.criterion, priors, self.writer, epoch, self.device)
+                train_anchor_based_epoch(self.model, self.train_loader, self.optimizer, self.criterion, priors, self.writer, epoch, self.device)
 
             # save checkpoint
             if epoch % self.cfg.TRAIN.CHECKPOINTS_EPOCHS == 0:
                 checkpoint.save_checkpoints(self.model, self.cfg.EXP_DIR, self.cfg.CHECKPOINTS_PREFIX, epoch)
-
 
 
     # def export_graph(self):
@@ -104,3 +108,29 @@ class Solver(object):
         # if not os.path.exists(cfg.EXP_DIR):
         #     os.makedirs(cfg.EXP_DIR)
         # self.writer.add_graph(self.model, (dummy_input, ))
+
+
+def parse_args():
+    """
+    Parse input arguments
+    """
+    parser = argparse.ArgumentParser(description='Train a ssds.pytorch network')
+    parser.add_argument('-cfg', '--config', dest='config_file',
+            help='optional config file', default=None, type=str, )
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    args = parser.parse_args()
+    return args
+
+def train():
+    args = parse_args()
+    
+    cfg = cfg_from_file(args.config_file)
+    train_solver = Solver(cfg)
+    train_solver.train_model()
+
+if __name__ == '__main__':
+    train()

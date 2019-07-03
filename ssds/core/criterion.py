@@ -52,22 +52,22 @@ class MultiBoxLoss(nn.Module):
         """
         loc_data, conf_data = predictions
         num = loc_data.size(0)
-        priors = self.priors
+        # priors = self.priors
         # priors = priors[:loc_data.size(1), :]
         num_priors = (priors.size(0))
         num_classes = self.num_classes
 
         # match priors (default boxes) and ground truth boxes
-        loc_t = torch.Tensor(num, num_priors, 4)
-        conf_t = torch.LongTensor(num, num_priors)
+        loc_t = priors.new(num, num_priors, 4).float() #torch.Tensor(num, num_priors, 4)
+        conf_t = priors.new(num, num_priors).long() #torch.LongTensor(num, num_priors)
         for idx in range(num):
             truths = targets[idx][:,:-1].data
             labels = targets[idx][:,-1].data
             defaults = priors.data
             match(self.threshold,truths,defaults,self.variance,labels,loc_t,conf_t,idx)
-        if self.use_gpu:
-            loc_t = loc_t.cuda()
-            conf_t = conf_t.cuda()
+        # if self.use_gpu:
+        #     loc_t = loc_t.cuda()
+        #     conf_t = conf_t.cuda()
         # wrap targets
         loc_t = Variable(loc_t, requires_grad=False)
         conf_t = Variable(conf_t,requires_grad=False)
@@ -87,7 +87,7 @@ class MultiBoxLoss(nn.Module):
         loss_c = log_sum_exp(batch_conf) - batch_conf.gather(1, conf_t.view(-1,1))
 
         # Hard Negative Mining
-        loss_c[pos] = 0 # filter out pos boxes for now
+        loss_c[pos.view(-1, 1)] = 0 # filter out pos boxes for now
         loss_c = loss_c.view(num, -1)
         _,loss_idx = loss_c.sort(1, descending=True)
         _,idx_rank = loss_idx.sort(1)
