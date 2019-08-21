@@ -1,5 +1,5 @@
 MODEL:
-  SSDS: ssd_lite
+  SSDS: ssd
   NETS: mobilenet_v1
   IMAGE_SIZE: [300, 300]
   NUM_CLASSES: 81
@@ -11,7 +11,7 @@ MODEL:
 TRAIN:
   MAX_EPOCHS: 100
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 32
+  BATCH_SIZE: 2
   TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
   RESUME_SCOPE: 'base,norm,extras,loc,conf'
   OPTIMIZER:
@@ -22,6 +22,7 @@ TRAIN:
   LR_SCHEDULER:
     SCHEDULER: SGDR
     WARM_UP_EPOCHS: 0
+  CRITERION: 'MultiBoxLoss'
 
 TEST:
   BATCH_SIZE: 64
@@ -39,12 +40,13 @@ POST_PROCESS:
 
 DATASET:
   DATASET: 'coco'
-  DATASET_DIR: './data/COCO'
+  DATASET_DIR: '/media/nas-570-002-nfssamba/Yang/dataset/COCO'
   TRAIN_SETS: [['2017', 'train']]
   TEST_SETS:  [['2017', 'val']]
   PROB: 0.6
 
 EXP_DIR: './experiments/models/test'
 LOG_DIR: './experiments/models/test'
-RESUME_CHECKPOINT: './weights/ssd_lite/mobilenet_v1_ssd_lite_coco_18.8.pth'
-PHASE: ['visualize']
+# RESUME_CHECKPOINT: './weights/ssd_lite/mobilenet_v1_ssd_lite_coco_18.8.pth'
+PHASE: ['train']
+DEVICE_ID: []
