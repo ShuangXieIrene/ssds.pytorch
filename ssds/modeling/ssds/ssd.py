@@ -2,10 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import os
-
-# from lib.layers import *
-
 class SSD(nn.Module):
     """Single Shot Multibox Architecture
     See: https://arxiv.org/pdf/1512.02325.pdf for more details.
@@ -22,9 +18,9 @@ class SSD(nn.Module):
     def __init__(self, base, extras, head, feature_layer, num_classes):
         super(SSD, self).__init__()
         self.num_classes = num_classes
+
         # SSD network
         self.base = nn.ModuleList(base)
-        # self.norm = L2Norm(feature_layer[1][0], 20)
         self.extras = nn.ModuleList(extras)
 
         self.loc = nn.ModuleList(head[0])
@@ -60,41 +56,24 @@ class SSD(nn.Module):
         for k in range(len(self.base)):
             x = self.base[k](x)
             if k in self.feature_layer:
-                if len(sources) == 0:
-                    s = self.norm(x)
-                    sources.append(s)
-                else:
-                    sources.append(x)
+                sources.append(x)
 
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
-            # TODO:maybe donot needs the relu here
-            x = F.relu(v(x), inplace=True)
-            # TODO:lite is different in here, should be changed
-            if k % 2 == 1:
-                sources.append(x)
-        
+            x = v(x)
+            sources.append(x)
+
         if phase == 'feature':
             return sources
 
         # apply multibox head to source layers
         for (x, l, c) in zip(sources, self.loc, self.conf):
-            loc.append(l(x).permute(0, 2, 3, 1).contiguous())
-            conf.append(c(x).permute(0, 2, 3, 1).contiguous())
-        loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
-        conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
-
-        if phase == 'eval':
-            output = (
-                loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(-1, self.num_classes)),  # conf preds
-            )
-        else:
-            output = (
-                loc.view(loc.size(0), -1, 4),
-                conf.view(conf.size(0), -1, self.num_classes),
-            )
-        return output
+            loc.append(l(x).view(x.size(0), 4, -1))
+            conf.append(c(x).view(x.size(0), self.num_classes, -1))
+        loc = torch.cat(loc, 2).contiguous()
+        conf = torch.cat(conf, 2).contiguous() 
+        
+        return loc, conf
 
 def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
@@ -113,14 +92,10 @@ def add_extras(base, feature_layer, mbox, num_classes, version):
                 in_channels = depth
         else:    
             if layer == 'S':
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
+                extra_layers += [ _conv(in_channels, depth, stride=2, padding=1) ]
                 in_channels = depth
             elif layer == '':
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
+                extra_layers += [ _conv(in_channels, depth, stride=1) ]
                 in_channels = depth
             else:
                 in_channels = depth
@@ -148,7 +123,10 @@ def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
 
 def _conv(inp, oup, stride=1, padding=0):
     return nn.Sequential(
-        nn.Conv2d(inp, oup, 3, stride, padding, bias=False),
+        nn.Conv2d(inp, oup//2, kernel_size=1, bias=False),
+        nn.BatchNorm2d(oup//2),
+        nn.ReLU(inplace=True),
+        nn.Conv2d(oup//2, oup, 3, stride, padding, bias=False),
         nn.BatchNorm2d(oup),
         nn.ReLU(inplace=True),
     )

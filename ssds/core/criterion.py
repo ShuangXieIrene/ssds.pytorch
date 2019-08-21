@@ -52,32 +52,32 @@ class MultiBoxLoss(nn.Module):
         """
         loc_data, conf_data = predictions
         num = loc_data.size(0)
-        # priors = self.priors
-        # priors = priors[:loc_data.size(1), :]
-        num_priors = (priors.size(0))
+
+        num_priors = priors.size(1)
         num_classes = self.num_classes
 
+        # print(loc_data.shape, conf_data.shape, priors.shape, len(targets))
+
+        # assert False
+
         # match priors (default boxes) and ground truth boxes
-        loc_t = priors.new(num, num_priors, 4).float() #torch.Tensor(num, num_priors, 4)
+        loc_t = priors.new(num, 4, num_priors).float() #torch.Tensor(num, num_priors, 4)
         conf_t = priors.new(num, num_priors).long() #torch.LongTensor(num, num_priors)
         for idx in range(num):
-            truths = targets[idx][:,:-1].data
-            labels = targets[idx][:,-1].data
+            truths = targets[idx][:-1].data
+            labels = targets[idx][-1].data
             defaults = priors.data
-            match(self.threshold,truths,defaults,self.variance,labels,loc_t,conf_t,idx)
-        # if self.use_gpu:
-        #     loc_t = loc_t.cuda()
-        #     conf_t = conf_t.cuda()
-        # wrap targets
-        loc_t = Variable(loc_t, requires_grad=False)
-        conf_t = Variable(conf_t,requires_grad=False)
+            loc_t[idx], conf_t[idx] = match(truths, labels,
+                                            defaults, self.variance,
+                                            self.threshold)
+        
+        # TODO: I may did a wrong thing, may be should change the order at func input..
+        loc_t = loc_t.permute(0,2,1).contiguous()
+        loc_data = loc_data.permute(0,2,1).contiguous()
+        conf_data = conf_data.permute(0,2,1).contiguous()
 
         pos = conf_t > 0
-        # num_pos = pos.sum()
-
-        # Localization Loss (Smooth L1)
-        # Shape: [batch,num_priors,4]
-        pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_data)
+        pos_idx = pos.unsqueeze(pos.dim()).expand_as(loc_t)
         loc_p = loc_data[pos_idx].view(-1,4)
         loc_t = loc_t[pos_idx].view(-1,4)
         loss_l = F.smooth_l1_loss(loc_p, loc_t, size_average=False)
@@ -103,7 +103,6 @@ class MultiBoxLoss(nn.Module):
         loss_c = F.cross_entropy(conf_p, targets_weighted, size_average=False)
 
         # Sum of losses: L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
-
         N = num_pos.data.sum()
         loss_l/=N
         loss_c/=N

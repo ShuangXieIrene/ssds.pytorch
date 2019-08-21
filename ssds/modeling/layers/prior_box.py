@@ -62,10 +62,9 @@ class PriorBox(nn.Module):
                             mean += [cx, cy, s_k/ar_sqrt, s_k*ar_sqrt]
                     elif isinstance(ar, list):
                         mean += [cx, cy, s_k*ar[0], s_k*ar[1]]
-        #     print(f, self.aspect_ratios[k])
-        # assert False
+
         # back to torch land
-        output = torch.Tensor(mean).view(-1, 4)
+        output = torch.Tensor(mean).view(-1, 4).transpose(1,0)
         if self.clip:
             output.clamp_(max=1, min=0)
         return output

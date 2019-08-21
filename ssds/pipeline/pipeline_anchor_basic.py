@@ -16,7 +16,8 @@ def train_anchor_based_epoch(model, data_loader, optimizer, criterion, priors, w
     loss = {}
 
     for batch_idx, (images, targets) in enumerate(progress):
-        images, targets = images.to(device), [anno.to(device) for anno in targets] 
+        # TODO: need to move the transpose at the preprocess
+        images, targets = images.to(device), [anno.transpose(1,0).to(device) for anno in targets]
 
         out = model(images, phase='train')
         loss_l, loss_c = criterion(out, targets, priors)

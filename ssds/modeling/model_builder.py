@@ -10,13 +10,13 @@ from ssds.modeling.ssds import yolo
 
 ssds_map = {
                 'ssd': ssd.build_ssd,
-                'ssd_lite': ssd_lite.build_ssd_lite,
-                'rfb': rfb.build_rfb,
-                'rfb_lite': rfb_lite.build_rfb_lite,
-                'fssd': fssd.build_fssd,
-                'fssd_lite': fssd_lite.build_fssd_lite,
-                'yolo_v2': yolo.build_yolo_v2,
-                'yolo_v3': yolo.build_yolo_v3,
+                # 'ssd_lite': ssd_lite.build_ssd_lite,
+                # 'rfb': rfb.build_rfb,
+                # 'rfb_lite': rfb_lite.build_rfb_lite,
+                # 'fssd': fssd.build_fssd,
+                # 'fssd_lite': fssd_lite.build_fssd_lite,
+                # 'yolo_v2': yolo.build_yolo_v2,
+                # 'yolo_v3': yolo.build_yolo_v3,
             }
 
 # nets part
@@ -25,6 +25,7 @@ from ssds.modeling.nets import resnet
 from ssds.modeling.nets import mobilenet
 from ssds.modeling.nets import darknet
 networks_map = {
+                    'resnet_50': resnet.resnet_50,
                     'vgg16': vgg.vgg16,
                     'resnet_18': resnet.resnet_18,
                     'resnet_34': resnet.resnet_34,
@@ -45,13 +46,7 @@ networks_map = {
 from ssds.modeling.layers.prior_box import PriorBox
 import torch
 
-def _forward_features_size(model, img_size):
-    model.eval()
-    with torch.no_grad():
-        x = torch.rand(1, 3, img_size[0], img_size[1])
-    # x = torch.autograd.Variable(x, volatile=True) #.cuda()
-        feature_maps = model(x, phase='feature')
-    return [(o.size()[2], o.size()[3]) for o in feature_maps]
+
 
 
 def create_model(cfg):
@@ -67,6 +62,13 @@ def create_model(cfg):
 
 
 def create_priors(cfg, model, image_size):
+    def _forward_features_size(model, img_size):
+        model.eval()
+        with torch.no_grad():
+            x = torch.rand(1, 3, img_size[0], img_size[1])
+            feature_maps = model(x, phase='feature')
+        return [(o.size()[2], o.size()[3]) for o in feature_maps]
+
     print('==>building the priors box')
     feature_maps = _forward_features_size(model, cfg.IMAGE_SIZE)
 
