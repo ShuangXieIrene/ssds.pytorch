@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from ssds.modeling.layers.layers_parser import parse_feature_layer
+# from ssds.modeling.layers.rfb_layers   import BasicRFB, BasicRFB_lite
+
+
 class SSD(nn.Module):
     """Single Shot Multibox Architecture
     See: https://arxiv.org/pdf/1512.02325.pdf for more details.
@@ -75,74 +79,25 @@ class SSD(nn.Module):
         
         return loc, conf
 
-def add_extras(base, feature_layer, mbox, num_classes, version):
+
+def add_extras(base, feature_layer, mbox, num_classes):
     extra_layers = []
     loc_layers = []
     conf_layers = []
     in_channels = None
     for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):
-        if 'lite' in version:
-            if layer == 'S':
-                extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
-                in_channels = depth
-            elif layer == '':
-                extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
-                in_channels = depth
-            else:
-                in_channels = depth
-        else:    
-            if layer == 'S':
-                extra_layers += [ _conv(in_channels, depth, stride=2, padding=1) ]
-                in_channels = depth
-            elif layer == '':
-                extra_layers += [ _conv(in_channels, depth, stride=1) ]
-                in_channels = depth
-            else:
-                in_channels = depth
+        extra_layers += parse_feature_layer(layer, in_channels, depth)
+        in_channels = depth
         
         loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (loc_layers, conf_layers)
-
-# based on the implementation in https://github.com/tensorflow/models/blob/master/research/object_detection/models/feature_map_generators.py#L213
-# when the expand_ratio is 1, the implemetation is nearly same. Since the shape is always change, I do not add the shortcut as what mobilenetv2 did.
-def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
-    return nn.Sequential(
-        # pw
-        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # dw
-        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
-        nn.BatchNorm2d(oup * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # pw-linear
-        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-    )
-
-def _conv(inp, oup, stride=1, padding=0):
-    return nn.Sequential(
-        nn.Conv2d(inp, oup//2, kernel_size=1, bias=False),
-        nn.BatchNorm2d(oup//2),
-        nn.ReLU(inplace=True),
-        nn.Conv2d(oup//2, oup, 3, stride, padding, bias=False),
-        nn.BatchNorm2d(oup),
-        nn.ReLU(inplace=True),
-    )
-
-
+    
+   
 def build_ssd(base, feature_layer, mbox, num_classes):
     """Single Shot Multibox Architecture
-    See: https://arxiv.org/pdf/1512.02325.pdf for more details.
-    """
-    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='ssd')
-    return SSD(base_, extras_, head_, feature_layer, num_classes)
-
-def build_ssd_lite(base, feature_layer, mbox, num_classes):
-    """Single Shot Multibox Architecture for embeded system
-    See: https://arxiv.org/pdf/1512.02325.pdf & 
+    See: https://arxiv.org/pdf/1512.02325.pdf and
     https://arxiv.org/pdf/1801.04381.pdf for more details.
     """
-    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='ssd_lite')
+    base_, extras_, head_ = add_extras(base(), feature_layer, mbox, num_classes)
     return SSD(base_, extras_, head_, feature_layer, num_classes)

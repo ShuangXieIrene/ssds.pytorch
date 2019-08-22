@@ -4,7 +4,9 @@ import torch.nn.functional as F
 
 import os
 
-# from lib.layers import *
+from ssds.modeling.layers.basic_layers import _conv
+from ssds.modeling.layers.layers_parser import parse_feature_layer
+
 
 class FSSD(nn.Module):
     """FSSD: Feature Fusion Single Shot Multibox Detector
@@ -23,20 +25,17 @@ class FSSD(nn.Module):
     def __init__(self, base, extras, head, features, feature_layer, num_classes):
         super(FSSD, self).__init__()
         self.num_classes = num_classes
-        # SSD network
+
+        # FSSD network
         self.base = nn.ModuleList(base)
         self.extras = nn.ModuleList(extras)
         self.feature_layer = feature_layer[0][0]
         self.transforms = nn.ModuleList(features[0])
         self.pyramids = nn.ModuleList(features[1])
-        # print(self.base)
-        # Layer learns to scale the l2 normalized features from conv4_3
         self.norm = nn.BatchNorm2d(int(feature_layer[0][1][-1]/2)*len(self.transforms),affine=True)
-        # print(self.extras)
 
         self.loc = nn.ModuleList(head[0])
         self.conf = nn.ModuleList(head[1])
-        # print(self.loc)
 
         self.softmax = nn.Softmax(dim=-1)
 
@@ -72,9 +71,8 @@ class FSSD(nn.Module):
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = v(x)
-            #TODO: different with lite this one should be change
-            if k % 2 == 1:
-                sources.append(x)
+            sources.append(x)
+
         assert len(self.transforms) == len(sources)
         upsize = (sources[0].size()[2], sources[0].size()[3])
 
@@ -91,33 +89,23 @@ class FSSD(nn.Module):
             return pyramids
 
         # apply multibox head to pyramids layers
-        for (x, l, c) in zip(pyramids, self.loc, self.conf):
-            loc.append(l(x).permute(0, 2, 3, 1).contiguous())
-            conf.append(c(x).permute(0, 2, 3, 1).contiguous())
-        loc = torch.cat([o.view(o.size(0), -1) for o in loc], 1)
-        conf = torch.cat([o.view(o.size(0), -1) for o in conf], 1)
+        for (x, l, c) in zip(sources, self.loc, self.conf):
+            loc.append(l(x).view(x.size(0), 4, -1))
+            conf.append(c(x).view(x.size(0), self.num_classes, -1))
+        loc = torch.cat(loc, 2).contiguous()
+        conf = torch.cat(conf, 2).contiguous() 
+        
+        return loc, conf
 
-        if phase == 'eval':
-            output = (
-                loc.view(loc.size(0), -1, 4),                   # loc preds
-                self.softmax(conf.view(-1, self.num_classes)),  # conf preds
-            )
-        else:
-            output = (
-                loc.view(loc.size(0), -1, 4),
-                conf.view(conf.size(0), -1, self.num_classes),
-            )
-        return output
 
-class BasicConv(nn.Module):
+class BasicConvWithUpSample(nn.Module):
+    # temp, need TODO improve
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True, bn=False, bias=True):
-        super(BasicConv, self).__init__()
+        super(BasicConvWithUpSample, self).__init__()
         self.out_channels = out_planes
         self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias)
         self.bn = nn.BatchNorm2d(out_planes,eps=1e-5, momentum=0.01, affine=True) if bn else None
         self.relu = nn.ReLU(inplace=True) if relu else None
-        # self.up_size = up_size
-        # self.up_sample = nn.Upsample(size=(up_size,up_size),mode='bilinear') if up_size != 0 else None
 
     def forward(self, x, up_size=None):
         x = self.conv(x)
@@ -127,23 +115,7 @@ class BasicConv(nn.Module):
             x = self.relu(x)
         if up_size is not None:
             x = F.upsample(x, size=up_size, mode='bilinear')
-            # x = self.up_sample(x)
         return x
-
-def _conv_dw(inp, oup, stride=1, padding=0, expand_ratio=1):
-    return nn.Sequential(
-        # pw
-        nn.Conv2d(inp, oup * expand_ratio, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # dw
-        nn.Conv2d(oup * expand_ratio, oup * expand_ratio, 3, stride, padding, groups=oup * expand_ratio, bias=False),
-        nn.BatchNorm2d(oup * expand_ratio),
-        nn.ReLU6(inplace=True),
-        # pw-linear
-        nn.Conv2d(oup * expand_ratio, oup, 1, 1, 0, bias=False),
-        nn.BatchNorm2d(oup),
-    )
 
 def add_extras(base, feature_layer, mbox, num_classes, version):
     extra_layers = []
@@ -152,51 +124,21 @@ def add_extras(base, feature_layer, mbox, num_classes, version):
     loc_layers = []
     conf_layers = []
     in_channels = None
+
     feature_transform_channel = int(feature_layer[0][1][-1]/2)
     for layer, depth in zip(feature_layer[0][0], feature_layer[0][1]):
-        if 'lite' in version:
-            if layer == 'S':
-                extra_layers += [ _conv_dw(in_channels, depth, stride=2, padding=1, expand_ratio=1) ]
-                in_channels = depth
-            elif layer == '':
-                extra_layers += [ _conv_dw(in_channels, depth, stride=1, expand_ratio=1) ]
-                in_channels = depth
-            else:
-                in_channels = depth
-        else:
-            if layer == 'S':
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3, stride=2, padding=1)  ]
-                in_channels = depth
-            elif layer == '':
-                extra_layers += [
-                        nn.Conv2d(in_channels, int(depth/2), kernel_size=1),
-                        nn.Conv2d(int(depth/2), depth, kernel_size=3)  ]
-                in_channels = depth
-            else:
-                in_channels = depth
-        feature_transform_layers += [BasicConv(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
+        extra_layers += parse_feature_layer(layer, in_channels, depth)
+        in_channels = depth
+        feature_transform_layers += [BasicConvWithUpSample(in_channels, feature_transform_channel, kernel_size=1, padding=0)]
     
     in_channels = len(feature_transform_layers) * feature_transform_channel
     for layer, depth, box in zip(feature_layer[1][0], feature_layer[1][1], mbox):
-        if layer == 'S':
-            pyramid_feature_layers += [BasicConv(in_channels, depth, kernel_size=3, stride=2, padding=1)]
-            in_channels = depth
-        elif layer == '':
-            pad = (0,1)[len(pyramid_feature_layers)==0]
-            pyramid_feature_layers += [BasicConv(in_channels, depth, kernel_size=3, stride=1, padding=pad)]
-            in_channels = depth
-        else:
-            AssertionError('Undefined layer')
+        pyramid_feature_layers += parse_feature_layer(layer, in_channels, depth)
+        in_channels = depth
         loc_layers += [nn.Conv2d(in_channels, box * 4, kernel_size=3, padding=1)]
         conf_layers += [nn.Conv2d(in_channels, box * num_classes, kernel_size=3, padding=1)]
     return base, extra_layers, (feature_transform_layers, pyramid_feature_layers), (loc_layers, conf_layers)
 
 def build_fssd(base, feature_layer, mbox, num_classes):
     base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='fssd')
-    return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)
-
-def build_fssd_lite(base, feature_layer, mbox, num_classes):
-    base_, extras_, features_, head_ = add_extras(base(), feature_layer, mbox, num_classes, version='fssd_lite')
     return FSSD(base_, extras_, head_, features_, feature_layer, num_classes)
