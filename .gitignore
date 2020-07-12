@@ -7,3 +7,4 @@ run.sh
 __pycache__
 *.pyc
 log*
+ssds.egg-info
