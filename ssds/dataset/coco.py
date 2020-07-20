@@ -14,13 +14,9 @@ class COCODataset(object):
     Arguments:
         root (string): filepath to VOCdevkit folder.
         image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (callable, optional): transformation to perform on the
-            input image
-        target_transform (callable, optional): transformation to perform on the
-            target `annotation`
-            (eg: take in caption string, return tensor of word indices)
-        dataset_name (string, optional): which dataset to load
-            (default: 'VOC2007')
+        transform (callable, optional): transformation to perform on the input image
+        target_transform (callable, optional): transformation to perform on the target `annotation` (eg: take in caption string, return tensor of word indices)
+        dataset_name (string, optional): which dataset to load (default: 'VOC2007')
     """
     def __init__(self, dataset_dir, image_sets):
         self.dataset_dir   = dataset_dir
@@ -85,7 +81,7 @@ class COCODataset(object):
         """
         Construct an image path from the image's "index" identifier.
         Example image path for index=119993:
-          images/train2014/COCO_train2014_000000119993.jpg
+        images/train2014/COCO_train2014_000000119993.jpg
         """
         file_name = (str(index).zfill(12) + '.jpg')
         image_path = os.path.join(self.dataset_dir, 'images',

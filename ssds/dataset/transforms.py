@@ -16,8 +16,9 @@ def intersect(box_a, box_b):
 def jaccard_numpy(box_a, box_b):
     """Compute the jaccard overlap of two sets of boxes.  The jaccard overlap
     is simply the intersection over union of two boxes.
-    E.g.:
-        A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
+
+    E.g.: A ∩ B / A ∪ B = A ∩ B / (area(A) + area(B) - A ∩ B)
+
     Args:
         box_a: Multiple bounding boxes, Shape: [num_boxes,4]
         box_b: Single bounding box, Shape: [4]
@@ -346,10 +347,9 @@ class RandomMirror(object):
 
 class SwapChannels(object):
     """Transforms a tensorized image by swapping the channels in the order
-     specified in the swap tuple.
+    specified in the swap tuple.
     Args:
-        swaps (int triple): final order of channels
-            eg: (2, 1, 0)
+        swaps (int triple): final order of channels, (2, 1, 0)
     """
 
     def __init__(self, swaps):
@@ -359,7 +359,7 @@ class SwapChannels(object):
         """
         Args:
             image (Tensor): image tensor to be transformed
-        Return:
+        Returns:
             a tensor with channels swapped according to swap
         """
         # if torch.is_tensor(image):
