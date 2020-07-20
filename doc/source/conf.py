@@ -46,6 +46,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinxcontrib.katex',
+    'sphinx.ext.githubpages',
     'sphinx.ext.autosectionlabel',
 ]
 

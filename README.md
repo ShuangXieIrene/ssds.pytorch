@@ -14,6 +14,7 @@ This repo is depended on the work of [ODTK](https://github.com/NVIDIA/retinanet-
 - <a href='#usage'>Usage</a>
 - <a href='#performance'>Performance and Model Zoo</a>
 - <a href='#visualization'>Visualization</a>
+- [Document](https://foreveryounggithub.github.io/ssds.doc)
 
 ## Installation
 ### requirements

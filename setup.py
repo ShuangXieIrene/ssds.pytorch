@@ -3,8 +3,7 @@ from setuptools import setup, find_packages
 
 with open('./requirements.txt') as f:
     required_packages = f.read().splitlines()
-with open('./extra_requirements.txt') as f:
-    dependency_links = f.read().splitlines()
+dependency_links = [required_packages.pop()[4:]]
 
 setup(name='ssds',
       version='1.5',
