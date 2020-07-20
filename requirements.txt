@@ -6,4 +6,3 @@ cython
 opencv-python
 matplotlib
 tensorboard
-git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
