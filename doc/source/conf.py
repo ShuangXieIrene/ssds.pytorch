@@ -60,9 +60,6 @@ numpydoc_show_class_members = False
 autosectionlabel_prefix_document = True
 
 # katex options
-#
-#
-
 katex_prerender = True
 
 napoleon_use_ivar = True

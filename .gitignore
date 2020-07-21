@@ -9,3 +9,5 @@ __pycache__
 log*
 ssds.egg-info
 doc/build
+doc/node_modules
+doc/package-lock.json

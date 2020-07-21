@@ -1,5 +1,5 @@
-ssds 
-============
+ssds.pytorch API 
+====================
 
 .. toctree::
    :maxdepth: 1

@@ -6,28 +6,34 @@ import math
 
 
 class MultiBoxLoss(nn.Module):
-    r"""SSD Weighted Loss Function
-    Compute Targets:
-    1) Produce Confidence Target Indices by matching  ground truth boxes
-    with (default) 'priorboxes' that have jaccard index > threshold parameter
-    (default threshold: 0.5).
-    2) Produce localization target by 'encoding' variance into offsets of ground
-    truth boxes and their matched  'priorboxes'.
-    3) Hard negative mining to filter the excessive number of negative examples
-    that comes with using a large number of default bounding boxes.
-    (default negative:positive ratio 3:1)
-    
-    Objective Loss:
-    L(x,c,l,g) = (Lconf(x, c) + αLloc(x,l,g)) / N
-    Where, Lconf is the CrossEntropy Loss and Lloc is the SmoothL1 Loss
-    weighted by α which is set to 1 by cross val.
-    See: https://arxiv.org/pdf/1512.02325.pdf for more details.
+    r"""The MultiBox Loss is used to calculate the classification loss in object detection task.
 
+    MultiBox Loss is introduce by [SSD: Single Shot MultiBox Detector](https://arxiv.org/abs/1512.02325v5) and can be described as:
+
+    .. math::
+        L(x,c,l,g) = (Lconf(x, c) + \alpha Lloc(x,l,g)) / N
+
+    where, :math:`Lconf` is the CrossEntropy Loss and :math:`Lloc` is the SmoothL1 Loss
+    weighted by :math:`\alpha` which is set to 1 by cross val.
+
+    Compute Targets:
+
+    * Produce Confidence Target
+        Indices by matching ground truth boxes
+        with (default) 'priorboxes' that have jaccard index > threshold parameter
+        (default threshold: 0.5).
+    * Produce localization target 
+        by 'encoding' variance into offsets of ground
+        truth boxes and their matched  'priorboxes'.
+    * Hard negative mining 
+        to filter the excessive number of negative examples
+        that comes with using a large number of default bounding boxes.
+        (default negative:positive ratio 3:1)
+    
+    To reduce the code and make it more easier to embed into the pipeline. Here, only the classification loss is included in this class
+    
     Args:
-        c: class confidences,
-        l: predicted boxes,
-        g: ground truth boxes
-        N: number of matched default boxes
+        negpos_ratio: ratio of negative over positive samples in the given feature map, Default: 3
     """
 
     def __init__(self, negpos_ratio=3, **kwargs):
@@ -35,13 +41,16 @@ class MultiBoxLoss(nn.Module):
         self.negpos_ratio = negpos_ratio
 
     def forward(self, pred_logits, target, depth):
-        """Multibox Loss
-        Args:
-            depth (): 
         """
-                # > 0: positive
-                # = 0: background
-                # < 0: ignore
+        Args:
+            pred_logits: Predict class for each box
+            target: Target class for each box
+            depth: the sign for the positive and negative samples from anchor mathcing. \
+                Basically it can be splited to 3 types: positive(>0), background/negative(=0), ignore(<0)
+        Returns:
+            The classification loss for the given feature map
+        """
+                
 
         pred = pred_logits.sigmoid()
         ce = F.binary_cross_entropy_with_logits(pred_logits, target, reduction="none")
@@ -63,7 +72,20 @@ class MultiBoxLoss(nn.Module):
 
 
 class FocalLoss(nn.Module):
-    r"Focal Loss - https://arxiv.org/abs/1708.02002"
+    r"""The Focal Loss is used to calculate the classification loss in object detection task.
+    
+    Focal Loss is introduce by [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002) and can be described as:
+
+    .. math::
+        FL(p_t)=-\alpha(1-p_t)^{\gamma}ln(p_t)
+    
+    where :math:`p_t` is the cross entropy for each box. :math:`\alpha` controls the ratio of positive sample and the :math:`\gamma`
+    controls the attention for the difficult samples.
+
+    Args:
+        alpha (float) : the param to control the ratio of positive sample, (0,1). Default: 0.25
+        gamma (float) : the param to the attention for the difficult samples, [0,n), [0,5] has been shown in the original paper. Default: 2
+    """
 
     def __init__(self, alpha=0.25, gamma=2, **kwargs):
         super().__init__()
@@ -73,11 +95,11 @@ class FocalLoss(nn.Module):
     def forward(self, pred_logits, target, depth):
         r"""
         Args:
-            pred_logits:
-            target:
-            depth:
+            pred_logits: Predict class for each box
+            target: Target class for each box
+            depth: Does not used in this function
         Returns:
-            The classification loss
+            The classification loss for the given feature map
         """
         pred = pred_logits.sigmoid()
         ce = F.binary_cross_entropy_with_logits(pred_logits, target, reduction="none")
@@ -87,13 +109,42 @@ class FocalLoss(nn.Module):
 
 
 class SmoothL1Loss(nn.Module):
-    "Smooth L1 Loss"
+    r"""The SmoothL1 Loss is used to calculate the localization loss in object detection task.
+    
+    This criterion that uses a squared term if the absolute
+    element-wise error falls below 1 and an L1 term otherwise.
+    It is less sensitive to outliers than the `MSELoss` and in some cases
+    prevents exploding gradients (e.g. see `Fast R-CNN` paper by Ross Girshick).
+    Also known as the Huber loss:
+
+    .. math::
+        \text{loss}(x_i, y_i) =
+        \begin{cases}
+        0.5 (x_i - y_i)^2, & \text{if } |x_i - y_i| < \beta \\
+        |x_i - y_i| - 0.5, & \text{otherwise }
+        \end{cases}
+    
+    :math:`x` and :math:`y` arbitrary shapes with a total of :math:`n` elements each
+    the sum operation still operates over all the elements, and divides by :math:`n`.
+
+    :math:`\beta` is used as the threshold and smooth the loss
+
+    Args:
+        beta (float) : the param to control the threshold and smooth the loss, (0,1). Default: 0.11
+    """
 
     def __init__(self, beta=0.11):
         super().__init__()
         self.beta = beta
 
     def forward(self, pred, target):
+        r"""
+        Args:
+            pred: Predict box for each box
+            target: Target box for each box
+        Returns:
+            The localization loss for the given feature map
+        """
         x = (pred - target).abs()
         l1 = x - 0.5 * self.beta
         l2 = 0.5 * x ** 2 / self.beta
@@ -106,6 +157,13 @@ class IOULoss(nn.Module):
         self.loss_type = loss_type
 
     def forward(self, pred, target):
+        r"""
+        Args:
+            pred: Predict box for each box, format with x,y,w,h
+            target: Target box for each box, format with x,y,w,h
+        Returns:
+            The localization loss for the given feature map
+        """
         pred_lt, pred_rb, pred_wh = self.delta2ltrb(pred)
         target_lt, target_rb, target_wh = self.delta2ltrb(target)
 
