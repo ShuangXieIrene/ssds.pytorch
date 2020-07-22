@@ -7,6 +7,8 @@ from scipy.optimize import linear_sum_assignment
 def matrix_iou(a, b):
     """
     return iou of a and b, numpy version for data augenmentation
+
+    :meta private:
     """
     lt = np.maximum(a[:, None, :2], b[:, :2])
     rb = np.minimum(a[:, None, 2:], b[:, 2:])

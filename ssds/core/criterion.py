@@ -152,6 +152,20 @@ class SmoothL1Loss(nn.Module):
 
 
 class IOULoss(nn.Module):
+    r"""The IOU Loss is used to calculate the localization loss in object detection task.
+
+    IoU Loss is introduce by [IoU Loss for 2D/3D Object Detection](https://arxiv.org/abs/1908.03851v1) and can be described as:
+
+    .. math::
+        IoU(A, B) = \frac{A \cap B}{A \cup B} = \frac{A \cap B}{|A| + |B| - A \cap  B}
+    
+    where, A and B represents the two convex shapes. In here, it means the predict box and the groundtruth box.
+
+    This class actually implemented multiple IoU related losses and use :attr:`loss_type` to choose the specific loss func.
+
+    Args:
+        loss_type (str): param to choose the specific loss type.
+    """
     def __init__(self, loss_type="iou"):
         super(IOULoss, self).__init__()
         self.loss_type = loss_type
@@ -226,14 +240,64 @@ class IOULoss(nn.Module):
 
 
 def GIOULoss():
+    r"""The GIOU Loss is used to calculate the localization loss in object detection task.
+
+    Generalized IoU Loss is introduce by [IoU Loss for 2D/3D Object Detection](https://arxiv.org/abs/1908.03851v1) and can be described as:
+
+    .. math::
+        IoU(A, B) = \frac{A \cap B}{A \cup B} = \frac{A \cap B}{|A| + |B| - A \cap  B}
+
+    .. math::
+        GIoU(A, B) = IoU(A, B) - \frac{C - U}{C}
+
+    where, A and B represents the two convex shapes. In here, it means the predict box and the groundtruth box; C is defined as the smallest convex
+    shapes enclosing both A and B; U represents the union area :math:`|A| + |B| - A \cap  B`
+
+    In implementation, it calls the :class:`.IOULoss` with :attr:`loss_type="giou"`.
+    """
     return IOULoss(loss_type="giou")
 
 
 def DIOULoss():
+    r"""The DIOU Loss is used to calculate the localization loss in object detection task.
+
+    Distance IoU Loss is introduce by [Distance-IoU Loss: Faster and Better Learning for Bounding Box Regression](https://arxiv.org/abs/1911.08287v1) and can be described as:
+
+    .. math::
+        IoU(A, B) = \frac{A \cap B}{A \cup B} = \frac{A \cap B}{|A| + |B| - A \cap  B}
+
+    .. math::
+        DIoU(A, B) = IoU(A, B) - \frac{diag_{inter}}{diag_{outer}}
+
+    where, A and B represents the two convex shapes. In here, it means the predict box and the groundtruth box; :math:`diag_{inter}` is defined as center distance between 
+    A and B; :math:`diag_{outer}` is the diagonal length of the smallest enclosing box covering the two boxes.
+
+    In implementation, it calls the :class:`.IOULoss` with :attr:`loss_type="diou"`.
+    """
     return IOULoss(loss_type="diou")
 
 
 def CIOULoss():
+    r"""The CIOU Loss is used to calculate the localization loss in object detection task.
+
+    Complete IoU Loss is introduce by [Distance-IoU Loss: Faster and Better Learning for Bounding Box Regression](https://arxiv.org/abs/1911.08287v1) and can be described as:
+
+    .. math::
+        IoU(A, B) = \frac{A \cap B}{A \cup B} = \frac{A \cap B}{|A| + |B| - A \cap  B}
+
+    .. math::
+        DIoU(A, B) = IoU(A, B) - \frac{diag_{inter}}{diag_{outer}}
+
+    .. math::
+        CIoU(A, B) = DIoU(A, B) - \alpha v
+    
+    where, A and B represents the two convex shapes. In here, it means the predict box and the groundtruth box; :math:`\alpha = \frac{v}{(1-IoU(A,B))+v}` 
+    and :math:`v = \frac{4}{\pi^2} (arctan \frac{w^A}{h^A} − arctan \frac{w^B}{h^B})^2` is used to impose the consistency of aspect ratio.
+
+    In CIoU loss, the :math:`\alpha` part is not used for backpropagation.
+
+    In implementation, it calls the :class:`.IOULoss` with :attr:`loss_type="ciou"`.
+    """
     return IOULoss(loss_type="ciou")
 
 

@@ -13,7 +13,7 @@ ssds.core.config
 -----------------------
 
 .. automodule:: ssds.core.config
-   :members:
+   :members: cfg_from_file
    :undoc-members:
    :show-inheritance:
 
@@ -24,20 +24,18 @@ ssds.core.criterion
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.core.data\_parallel
 -------------------------------
 
-.. automodule:: ssds.core.data_parallel
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. autoclass:: ssds.core.data_parallel.BalancedDataParallel
 
 ssds.core.evaluation\_metrics
 ------------------------------------
 
-.. automodule:: ssds.core.evaluation_metrics
-   :members:
+.. autoclass:: ssds.core.evaluation_metrics.MeanAveragePrecision
+   :members: __call__, get_results
    :undoc-members:
    :show-inheritance:
 
@@ -45,14 +43,6 @@ ssds.core.optimizer
 --------------------------
 
 .. automodule:: ssds.core.optimizer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.core.tools
-----------------------
-
-.. automodule:: ssds.core.tools
    :members:
    :undoc-members:
    :show-inheritance:

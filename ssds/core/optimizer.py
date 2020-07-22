@@ -10,6 +10,8 @@ class InvertedExponentialLR(lr_scheduler._LRScheduler):
         end_lr (float): the final learning rate.
         num_iter (int): the number of iterations over which the test occurs.
         last_epoch (int, optional): the index of last epoch. Default: -1.
+
+    :meta private:
     """
 
     def __init__(self, optimizer, end_lr, num_iter=100, last_epoch=-1):
@@ -24,9 +26,22 @@ class InvertedExponentialLR(lr_scheduler._LRScheduler):
 
 
 def trainable_param(model, trainable_scope):
-    """
-    given the trainable module by cfg.TRAINABLE_SCOPE, 
-    if the module in trainable scope, then train this module's parameters
+    r""" Return the trainable parameters for the optimizers by :attr:`cfg.TRAIN.TRAINABLE_SCOPE`
+
+    If the module in trainable scope, then train this module's parameters
+
+    When :
+
+    * cfg.TRAIN.TRAINABLE_SCOPE = ""
+        All the parameters in the model are used to train
+    * cfg.TRAIN.TRAINABLE_SCOPE = "a,b,c.d"
+        Only the the parameters in the a, b and c.d are used to train
+    * cfg.TRAIN.TRAINABLE_SCOPE = "a;b,c.d"
+        Only the the parameters in the a, b and c.d are used to train. module a and model b&c.d can be assigned to different learning rate (differential learning rate)
+
+    Args:
+        model: the ssds model for training
+        trainable_scope (str): the scope for the trainable parameter in the given ssds model, which is defined in the cfg.TRAIN.TRAINABLE_SCOPE
     """
     trainable_param = []
 
@@ -56,6 +71,21 @@ def trainable_param(model, trainable_scope):
 
 
 def configure_optimizer(trainable_param, cfg):
+    r""" Return the optimizer for the trainable parameters
+
+    Basically, it returns the optimizer defined by :attr:`cfg.TRAIN.OPTIMIZER.OPTIMIZER`. The learning rate for the optimizer is defined by :attr:`cfg.TRAIN.OPTIMIZER.LEARNING_RATE`
+    and :attr:`cfg.TRAIN.OPTIMIZER.DIFFERENTIAL_LEARNING_RATE`. Some other parameters are also defined in :attr:`cfg.TRAIN.OPTIMIZER`.
+
+    Currently, there are 4 popular optimizers supported: sgd, rmsprop, adam and amsgrad.
+
+    TODO: directly fetch the optimizer by getattr(optim, cfg.OPTIMIZER) and send the the relative parameter by dict.
+
+    Args:
+        trainable_param: the trainable parameter in the given ssds model, check :meth:`trainable_param` for more details.
+        cfg: the config dict, which is defined in :attr:`cfg.TRAIN.OPTIMIZER`. 
+    """
+
+
     if len(cfg.DIFFERENTIAL_LEARNING_RATE) == 0 or len(trainable_param) == 1:
         trainable_param = trainable_param[0]
     else:
@@ -102,6 +132,19 @@ def configure_optimizer(trainable_param, cfg):
 
 
 def configure_lr_scheduler(optimizer, cfg):
+    r""" Return the learning rate scheduler for the trainable parameters
+
+    Basically, it returns the learning rate scheduler defined by :attr:`cfg.TRAIN.LR_SCHEDULER.SCHEDULER`. 
+    Some parameters for the learning rate scheduler are also defined in :attr:`cfg.TRAIN.LR_SCHEDULER`.
+
+    Currently, there are 4 popular learning rate scheduler supported: step, multi_step, exponential and sgdr.
+
+    TODO: directly fetch the optimizer by getattr(lr_scheduler, cfg.SCHEDULER) and send the the relative parameter by dict.
+
+    Args:
+        optimizer: the optimizer in the given ssds model, check :meth:`configure_optimizer` for more details.
+        cfg: the config dict, which is defined in :attr:`cfg.TRAIN.LR_SCHEDULER`. 
+    """
     if cfg.SCHEDULER == "step":
         scheduler = lr_scheduler.StepLR(
             optimizer, step_size=cfg.STEPS[0], gamma=cfg.GAMMA

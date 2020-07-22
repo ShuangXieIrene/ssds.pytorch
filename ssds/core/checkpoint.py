@@ -5,6 +5,10 @@ from collections import OrderedDict
 
 
 def model_to_cpu(model_state):
+    r""" make sure the model is load from cpu memory. In this case, the loaded model will not occupied the gpu memory.
+
+    :meta private:
+    """
     new_state = OrderedDict()
     for k, v in model_state.items():
         new_state[k] = v.cpu()
@@ -12,6 +16,14 @@ def model_to_cpu(model_state):
 
 
 def save_checkpoints(model, output_dir, checkpoint_prefix, epochs):
+    r"""Save the model parameter to a pth file.
+
+    Args:
+        model: the ssds model
+        output_dir (str): the folder for model saving, usually defined by cfg.EXP_DIR
+        checkpoint_prefix (str): the prefix for the checkpoint, usually is the combination of the ssd model and the dataset
+        epochs (int): the epoch for the current training
+    """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -24,6 +36,13 @@ def save_checkpoints(model, output_dir, checkpoint_prefix, epochs):
 
 
 def find_previous_checkpoint(output_dir):
+    r"""Return the most recent checkpoint in the checkpoint_list.txt
+    
+    checkpoint_list.txt is usually saved at cfg.EXP_DIR
+
+    Args:
+        output_dir (str): the folder contains the previous checkpoints and checkpoint_list.txt
+    """
     if not os.path.exists(os.path.join(output_dir, "checkpoint_list.txt")):
         return False
     with open(os.path.join(output_dir, "checkpoint_list.txt"), "r") as f:
@@ -38,6 +57,22 @@ def find_previous_checkpoint(output_dir):
 
 
 def resume_checkpoint(model, resume_checkpoint, resume_scope=""):
+    r"""Resume the checkpoints to the given ssds model based on the resume_scope.
+
+    The resume_scope is defined by cfg.TRAIN.RESUME_SCOPE.
+
+    When:
+
+    * cfg.TRAIN.RESUME_SCOPE = ""
+        All the parameters in the resume_checkpoint are resumed to the model
+    * cfg.TRAIN.RESUME_SCOPE = "a,b,c"
+        Only the the parameters in the a, b and c are resumed to the model
+    
+    Args:
+        model: the ssds model
+        resume_checkpoint (str): the file address for the checkpoint which contains the resumed parameters
+        resume_scope: the scope of the resumed parameters, defined at cfg.TRAIN.RESUME_SCOPE
+    """
     if resume_checkpoint == "" or not os.path.isfile(resume_checkpoint):
         print(("=> no checkpoint found at '{}'".format(resume_checkpoint)))
         return False
