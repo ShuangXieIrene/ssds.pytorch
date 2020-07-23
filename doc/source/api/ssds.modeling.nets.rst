@@ -8,6 +8,7 @@ ssds.modeling.nets.darknet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.densenet
 ----------------------------------
@@ -16,6 +17,7 @@ ssds.modeling.nets.densenet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.efficientnet
 --------------------------------------
@@ -24,6 +26,7 @@ ssds.modeling.nets.efficientnet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.effnet
 --------------------------------
@@ -32,14 +35,15 @@ ssds.modeling.nets.effnet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.inception\_v2
 ---------------------------------------
 
 .. automodule:: ssds.modeling.nets.inception_v2
-   :members:
+   :members: InceptionV2
    :undoc-members:
-   :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.mobilenet
 -----------------------------------
@@ -48,6 +52,7 @@ ssds.modeling.nets.mobilenet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.regnet
 --------------------------------
@@ -56,6 +61,7 @@ ssds.modeling.nets.regnet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.resnet
 --------------------------------
@@ -64,14 +70,7 @@ ssds.modeling.nets.resnet
    :members:
    :undoc-members:
    :show-inheritance:
-
-ssds.modeling.nets.rutils
---------------------------------
-
-.. automodule:: ssds.modeling.nets.rutils
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :member-order: bysource
 
 ssds.modeling.nets.shufflenet
 ------------------------------------
@@ -80,3 +79,4 @@ ssds.modeling.nets.shufflenet
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource

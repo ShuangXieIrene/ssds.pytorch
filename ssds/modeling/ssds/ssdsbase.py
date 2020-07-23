@@ -4,6 +4,8 @@ import math
 
 
 class SSDSBase(nn.Module):
+    r"""Base class for all ssds model.
+    """
     def __init__(self, backbone, num_classes):
         super(SSDSBase, self).__init__()
         self.backbone = backbone

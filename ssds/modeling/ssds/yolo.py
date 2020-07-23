@@ -8,14 +8,14 @@ from ssds.modeling.layers.basic_layers import ConvBNReLU, ConvBNReLUx2
 
 
 class YOLOV3(SSDSBase):
-    """YOLO V3 Architecture
-    See: https://arxiv.org/pdf/1804.02767.pdf for more details.
+    r"""YOLOv3: An Incremental Improvement
+    See: https://arxiv.org/abs/1804.02767v1 for more details.
+
 
     Args:
-        base: base layers for input
-        extras: extra layers that feed to multibox loc and conf layers
+        backbone: backbone layers for input
+        extras: contains transforms and extra layers that feed to multibox loc and conf layers
         head: "multibox head" consists of loc and conf conv layers
-        feature_layer: the feature layers for head to loc and conf
         num_classes: num of classes 
     """
 
@@ -30,6 +30,9 @@ class YOLOV3(SSDSBase):
         self.initialize()
 
     def initialize(self):
+        r"""
+        :meta private:
+        """
         self.backbone.initialize()
         self.transforms.apply(self.initialize_extra)
         self.extras.apply(self.initialize_extra)
@@ -39,25 +42,19 @@ class YOLOV3(SSDSBase):
             c[-1].apply(self.initialize_prior)
 
     def forward(self, x):
-        """Applies network layers and ops on input image(s) x.
+        r"""Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3,300,300].
+            x: input image or batch of images.
 
         Return:
-            Depending on phase:
-            test:
-                Variable(tensor) of output class label predictions,
-                confidence score, and corresponding location predictions for
-                each object detected. Shape: [batch,topk,7]
+            When self.training==True, loc and conf for each anchor box;
 
-            train:
-                list of concat outputs from:
-                    1: confidence layers, Shape: [batch*num_priors,num_classes]
-                    2: localization layers, Shape: [batch,num_priors*4]
+            When self.training==False. loc and conf.sigmoid() for each anchor box;
 
-            feature:
-                the features maps of the feature extractor
+            For each player, conf with shape [batch, num_anchor*num_classes, height, width];
+
+            For each player, loc  with shape [batch, num_anchor*4, height, width].
         """
         loc, conf = [list() for _ in range(2)]
 
@@ -91,6 +88,23 @@ class YOLOV3(SSDSBase):
 
     @staticmethod
     def add_extras(feature_layer, mbox, num_classes):
+        r"""Define and declare the extras, loc and conf modules for the yolo v3 model.
+
+        The feature_layer is defined in cfg.MODEL.FEATURE_LAYER. For yolo v3 model can be int, list of int and str:
+
+        * int
+            The int in the feature_layer represents the output feature in the backbone.
+        * list of int
+            The list of int in the feature_layer represents the output feature in the backbone, the first int is the \
+            backbone output and the second int is the upsampling branch to fuse feature.
+        * str
+            The str in the feature_layer represents the extra layers append at the end of the backbone.
+
+        Args:
+            feature_layer: the feature layers with detection head, defined by cfg.MODEL.FEATURE_LAYER
+            mbox: the number of boxes for each feature map
+            num_classes: the number of classes, defined by cfg.MODEL.NUM_CLASSES
+        """
         nets_outputs, transform_layers, extra_layers, loc_layers, conf_layers = [
             list() for _ in range(5)
         ]
@@ -234,14 +248,13 @@ class PANModule(nn.Module):
 
 
 class YOLOV4(SSDSBase):
-    """YOLO V3 Architecture
-    See: https://arxiv.org/pdf/1804.02767.pdf for more details.
+    """YOLO V4 Architecture
+    See: https://arxiv.org/abs/2004.10934v1 for more details.
 
     Args:
-        base: base layers for input
-        extras: extra layers that feed to multibox loc and conf layers
+        backbone: backbone layers for input
+        extras: contains transforms, extra and fpn layers that feed to multibox loc and conf layers
         head: "multibox head" consists of loc and conf conv layers
-        feature_layer: the feature layers for head to loc and conf
         num_classes: num of classes 
     """
 
@@ -257,6 +270,9 @@ class YOLOV4(SSDSBase):
         self.initialize()
 
     def initialize(self):
+        r"""
+        :meta private:
+        """
         self.backbone.initialize()
         self.transforms.apply(self.initialize_extra)
         self.fpn.apply(self.initialize_extra)
@@ -267,25 +283,19 @@ class YOLOV4(SSDSBase):
             c[-1].apply(self.initialize_prior)
 
     def forward(self, x):
-        """Applies network layers and ops on input image(s) x.
+        r"""Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3,300,300].
+            x: input image or batch of images.
 
         Return:
-            Depending on phase:
-            test:
-                Variable(tensor) of output class label predictions,
-                confidence score, and corresponding location predictions for
-                each object detected. Shape: [batch,topk,7]
+            When self.training==True, loc and conf for each anchor box;
 
-            train:
-                list of concat outputs from:
-                    1: confidence layers, Shape: [batch*num_priors,num_classes]
-                    2: localization layers, Shape: [batch,num_priors*4]
+            When self.training==False. loc and conf.sigmoid() for each anchor box;
 
-            feature:
-                the features maps of the feature extractor
+            For each player, conf with shape [batch, num_anchor*num_classes, height, width];
+
+            For each player, loc  with shape [batch, num_anchor*4, height, width].
         """
         loc, conf = [list() for _ in range(2)]
 
@@ -314,6 +324,23 @@ class YOLOV4(SSDSBase):
 
     @staticmethod
     def add_extras(feature_layer, mbox, num_classes):
+        r"""Define and declare the extras, loc and conf modules for the yolo v4 model.
+
+        The feature_layer is defined in cfg.MODEL.FEATURE_LAYER. For yolo v4 model can be int, list of int and str:
+
+        * int
+            The int in the feature_layer represents the output feature in the backbone.
+        * list of int
+            The list of int in the feature_layer represents the output feature in the backbone, the first int is the \
+            backbone output and the second int is the upsampling branch to fuse feature.
+        * str
+            The str in the feature_layer represents the extra layers append at the end of the backbone.
+
+        Args:
+            feature_layer: the feature layers with detection head, defined by cfg.MODEL.FEATURE_LAYER
+            mbox: the number of boxes for each feature map
+            num_classes: the number of classes, defined by cfg.MODEL.NUM_CLASSES
+        """
         nets_outputs, transform_layers, extra_layers, loc_layers, conf_layers = [
             list() for _ in range(5)
         ]

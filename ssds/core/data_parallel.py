@@ -53,6 +53,10 @@ def scatter_kwargs(inputs, kwargs, target_gpus, chunk_sizes, dim=0):
 
 
 class BalancedDataParallel(DataParallel):
+    """ This class is used to replace the original pytorch DataParallel and balance the first GPU memory usage.
+
+    The original script is from: https://github.com/kimiyoung/transformer-xl/blob/master/pytorch/utils/data_parallel.py
+    """
     def __init__(self, gpu0_bsz, *args, **kwargs):
         self.gpu0_bsz = gpu0_bsz
         super().__init__(*args, **kwargs)

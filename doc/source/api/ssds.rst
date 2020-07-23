@@ -14,4 +14,4 @@ ssds.ssds
 ---------------------------
 
 .. autoclass:: ssds.ssds.SSDDetector
-   :members:
+   :members: __call__

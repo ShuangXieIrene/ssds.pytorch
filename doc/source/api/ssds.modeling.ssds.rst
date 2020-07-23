@@ -1,37 +1,10 @@
 ssds.modeling.ssds
 ==========================
 
-Submodules
-----------
+ssds.modeling.ssds.ssdsbase
+----------------------------------
 
-ssds.modeling.ssds.bifpn
--------------------------------
-
-.. automodule:: ssds.modeling.ssds.bifpn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.modeling.ssds.fcos
-------------------------------
-
-.. automodule:: ssds.modeling.ssds.fcos
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.modeling.ssds.fpn
------------------------------
-
-.. automodule:: ssds.modeling.ssds.fpn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.modeling.ssds.shelf
--------------------------------
-
-.. automodule:: ssds.modeling.ssds.shelf
+.. autoclass:: ssds.modeling.ssds.ssdsbase.SSDSBase
    :members:
    :undoc-members:
    :show-inheritance:
@@ -39,15 +12,7 @@ ssds.modeling.ssds.shelf
 ssds.modeling.ssds.ssd
 -----------------------------
 
-.. automodule:: ssds.modeling.ssds.ssd
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.modeling.ssds.ssdsbase
-----------------------------------
-
-.. automodule:: ssds.modeling.ssds.ssdsbase
+.. autoclass:: ssds.modeling.ssds.SSD
    :members:
    :undoc-members:
    :show-inheritance:
@@ -55,16 +20,28 @@ ssds.modeling.ssds.ssdsbase
 ssds.modeling.ssds.yolo
 ------------------------------
 
-.. automodule:: ssds.modeling.ssds.yolo
+.. autoclass:: ssds.modeling.ssds.YOLOV3
    :members:
    :undoc-members:
    :show-inheritance:
 
+.. autoclass:: ssds.modeling.ssds.YOLOV4
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-Module contents
----------------
+ssds.modeling.ssds.fpn
+-----------------------------
 
-.. automodule:: ssds.modeling.ssds
+.. autoclass:: ssds.modeling.ssds.SSDFPN
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ssds.modeling.ssds.bifpn
+-------------------------------
+
+.. autoclass:: ssds.modeling.ssds.SSDBiFPN
    :members:
    :undoc-members:
    :show-inheritance:

@@ -8,7 +8,7 @@ from ssds.modeling.layers.layers_parser import parse_feature_layer
 
 
 class SSD(SSDSBase):
-    """Single Shot Multibox Architecture
+    r"""SSD: Single Shot MultiBox Detector
     See: https://arxiv.org/pdf/1512.02325.pdf for more details.
 
     Args:
@@ -29,6 +29,9 @@ class SSD(SSDSBase):
         self.initialize()
 
     def initialize(self):
+        r"""
+        :meta private:
+        """
         self.backbone.initialize()
         self.extras.apply(self.initialize_extra)
         self.loc.apply(self.initialize_head)
@@ -37,25 +40,19 @@ class SSD(SSDSBase):
             c.apply(self.initialize_prior)
 
     def forward(self, x):
-        """Applies network layers and ops on input image(s) x.
+        r"""Applies network layers and ops on input image(s) x.
 
         Args:
-            x: input image or batch of images. Shape: [batch,3,300,300].
+            x: input image or batch of images.
 
         Return:
-            Depending on phase:
-            test:
-                Variable(tensor) of output class label predictions,
-                confidence score, and corresponding location predictions for
-                each object detected. Shape: [batch,topk,7]
+            When self.training==True, loc and conf for each anchor box;
 
-            train:
-                list of concat outputs from:
-                    1: confidence layers, Shape: [batch, num_priors*num_classes, height, width]
-                    2: localization layers, Shape: [batch, num_priors*4, height, width]
+            When self.training==False. loc and conf.sigmoid() for each anchor box;
 
-            feature:
-                the features maps of the feature extractor
+            For each player, conf with shape [batch, num_anchor*num_classes, height, width];
+
+            For each player, loc  with shape [batch, num_anchor*4, height, width].
         """
         loc, conf = [list() for _ in range(2)]
 
@@ -78,6 +75,20 @@ class SSD(SSDSBase):
 
     @staticmethod
     def add_extras(feature_layer, mbox, num_classes):
+        r"""Define and declare the extras, loc and conf modules for the ssd model.
+
+        The feature_layer is defined in cfg.MODEL.FEATURE_LAYER. For ssd model can be int, list of int and str:
+
+        * int
+            The int in the feature_layer represents the output feature in the backbone.
+        * str
+            The str in the feature_layer represents the extra layers append at the end of the backbone.
+
+        Args:
+            feature_layer: the feature layers with detection head, defined by cfg.MODEL.FEATURE_LAYER
+            mbox: the number of boxes for each feature map
+            num_classes: the number of classes, defined by cfg.MODEL.NUM_CLASSES
+        """
         nets_outputs, extra_layers, loc_layers, conf_layers = [list() for _ in range(4)]
         in_channels = None
         for layer, depth, box in zip(feature_layer[0], feature_layer[1], mbox):

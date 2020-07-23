@@ -64,15 +64,16 @@ class BiFPNModule(nn.Module):
 
 
 class SSDBiFPN(SSDSBase):
-    """RetinaNet in Focal Loss for Dense Object Detection
-    See: https://arxiv.org/pdf/1708.02002.pdf for more details.
+    """EfficientDet: Scalable and Efficient Object Detection
+    See: https://arxiv.org/abs/1911.09070v6 for more details.
+
     Compared with the original implementation, change the conv2d 
     in the extra and head to ConvBNReLU to helps the model converage easily
     Not add the bn&relu to transforms cause it is followed by interpolate and element-wise sum
 
     Args:
         backbone: backbone layers for input
-        extras: extra layers that feed to multibox loc and conf layers
+        extras: contains transforms, extra and stack_bifpn layers that feed to multibox loc and conf layers
         head: "multibox head" consists of loc and conf conv layers
         num_classes: num of classes 
     """
@@ -90,6 +91,9 @@ class SSDBiFPN(SSDSBase):
         self.initialize()
 
     def initialize(self):
+        r"""
+        :meta private:
+        """
         self.backbone.initialize()
         self.transforms.apply(self.initialize_extra)
         self.extras.apply(self.initialize_extra)
@@ -98,6 +102,20 @@ class SSDBiFPN(SSDSBase):
         self.conf[-1].apply(self.initialize_prior)
 
     def forward(self, x):
+        r"""Applies network layers and ops on input image(s) x.
+
+        Args:
+            x: input image or batch of images.
+
+        Return:
+            When self.training==True, loc and conf for each anchor box;
+
+            When self.training==False. loc and conf.sigmoid() for each anchor box;
+
+            For each player, conf with shape [batch, num_anchor*num_classes, height, width];
+
+            For each player, loc  with shape [batch, num_anchor*4, height, width].
+        """
         loc, conf = [list() for _ in range(2)]
 
         # apply bases layers and cache source layer outputs
@@ -125,6 +143,23 @@ class SSDBiFPN(SSDSBase):
 
     @staticmethod
     def add_extras(feature_layer, mbox, num_classes):
+        r"""Define and declare the extras, loc and conf modules for the ssdfpn model.
+
+        The feature_layer is defined in cfg.MODEL.FEATURE_LAYER. For ssdfpn model can be int, list of int and str:
+
+        * int
+            The int in the feature_layer represents the output feature in the backbone.
+        * list of int
+            The list of int in the feature_layer represents the output feature in the backbone, the first int is the \
+            backbone output and the second int is the upsampling branch to fuse feature.
+        * str
+            The str in the feature_layer represents the extra layers append at the end of the backbone.
+
+        Args:
+            feature_layer: the feature layers with detection head, defined by cfg.MODEL.FEATURE_LAYER
+            mbox: the number of boxes for each feature map
+            num_classes: the number of classes, defined by cfg.MODEL.NUM_CLASSES
+        """
         nets_outputs, transform_layers, extra_layers = [list() for _ in range(3)]
         transform_layers = []
         if not all(mbox[i] == mbox[i + 1] for i in range(len(mbox) - 1)):
