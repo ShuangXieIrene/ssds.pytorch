@@ -9,12 +9,14 @@ Currently, it contains these features:
 
 This repo is depended on the work of [ODTK](https://github.com/NVIDIA/retinanet-examples), [Detectron](https://github.com/facebookresearch/Detectron) and [Tensorflow Object Detection API](https://github.com/tensorflow/models/tree/master/research/object_detection). Thanks for their works.
 
+**Notice** The pretrain model for the current version does not finished yet, please check the [previous version](https://github.com/ShuangXieIrene/ssds.pytorch/tree/v0.3.1) for enrich pretrain models.
+
 ### Table of Contents
 - <a href='#installation'>Installation</a>
 - <a href='#usage'>Usage</a>
 - <a href='#performance'>Performance and Model Zoo</a>
 - <a href='#visualization'>Visualization</a>
-- [Document](https://foreveryounggithub.github.io/ssds.doc)
+- [Documentation](https://foreveryounggithub.github.io/ssds.doc)
 
 ## Installation
 ### requirements
