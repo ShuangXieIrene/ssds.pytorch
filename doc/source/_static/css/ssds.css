@@ -1,0 +1,20 @@
+.rst-content .hidden-section {
+    display: none;
+}
+
+.rst-toc .hidden-section {
+    display: none;
+}
+
+nav .hidden-section {
+    display: inherit;
+}
+
+.wy-side-nav-search {
+    background-color: #fff;
+    color: #333;
+}
+
+.version{
+    color: #404040 !important;
+}

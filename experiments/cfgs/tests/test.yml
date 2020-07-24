@@ -1,36 +1,34 @@
 MODEL:
-  SSDS: ssd_lite
-  NETS: mobilenet_v1
-  IMAGE_SIZE: [300, 300]
-  NUM_CLASSES: 81
-  FEATURE_LAYER: [[11, 13, 'S', 'S', 'S', 'S'], [512, 1024, 512, 256, 256, 128]]
-  STEPS: [[16, 16], [32, 32], [64, 64], [100, 100], [150, 150], [300, 300]]
-  SIZES: [[45, 45], [90, 90], [135, 135], [180, 180], [225, 225], [270, 270], [315, 315]]
-  ASPECT_RATIOS: [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2], [1, 2]]
+  SSDS: YOLOV3
+  NETS: ResNet18
+  IMAGE_SIZE: [320, 320]
+  NUM_CLASSES: 80
+  FEATURE_LAYER: [[3, 4, 5], [128, 256, 512]]
+  SIZES: [[2.0, 2.828], [2.0, 2.828], [2.0, 4.0, 8.0]]
+  ASPECT_RATIOS: [[1, 2, 0.5], [1, 2, 0.5], [1, 2, 0.5]]
 
 TRAIN:
-  MAX_EPOCHS: 100
+  MAX_EPOCHS: 50
   CHECKPOINTS_EPOCHS: 1
-  BATCH_SIZE: 32
-  TRAINABLE_SCOPE: 'base,norm,extras,loc,conf'
-  RESUME_SCOPE: 'base,norm,extras,loc,conf'
+  BATCH_SIZE: 1
+  TRAINABLE_SCOPE: 'transforms,extras,loc,conf'
+  RESUME_SCOPE: ''
   OPTIMIZER:
-    OPTIMIZER: sgd
-    LEARNING_RATE: 0.001
+    OPTIMIZER: adam
+    LEARNING_RATE: 0.0001
     MOMENTUM: 0.9
     WEIGHT_DECAY: 0.0001
   LR_SCHEDULER:
-    SCHEDULER: SGDR
+    SCHEDULER: exponential
+    GAMMA: 0.97
     WARM_UP_EPOCHS: 0
 
 TEST:
-  BATCH_SIZE: 64
-  TEST_SCOPE: [90, 100]
+  BATCH_SIZE: 1
+  TEST_SCOPE: [49, 50]
 
 MATCHER:
-  MATCHED_THRESHOLD: 0.5
-  UNMATCHED_THRESHOLD: 0.5
-  NEGPOS_RATIO: 3
+  LOCATE_LOSS: "CIOULoss"
 
 POST_PROCESS:
   SCORE_THRESHOLD: 0.01
@@ -38,13 +36,14 @@ POST_PROCESS:
   MAX_DETECTIONS: 100
 
 DATASET:
-  DATASET: 'coco'
-  DATASET_DIR: './data/COCO'
-  TRAIN_SETS: [['2017', 'train']]
-  TEST_SETS:  [['2017', 'val']]
-  PROB: 0.6
+  DATASET: 'DaliCOCO'
+  DATASET_DIR: '/data1/dataset/tiny_coco'
+  TRAIN_SETS: ["train2017"]
+  TEST_SETS:  ["val2017"]
+  DEVICE_ID: [0]
 
-EXP_DIR: './experiments/models/test'
-LOG_DIR: './experiments/models/test'
-RESUME_CHECKPOINT: './weights/ssd_lite/mobilenet_v1_ssd_lite_coco_18.8.pth'
-PHASE: ['visualize']
+EXP_DIR: './experiments/models/pretrain/yolo_resnet18_coco_test2'
+LOG_DIR: './experiments/models/pretrain/yolo_resnet18_coco_test2'
+# RESUME_CHECKPOINT: './experiments/weights/pretrain/SSD_ResNet18_300x300_COCO_20.4.pth'
+PHASE: ['train']
+DEVICE_ID: [0]

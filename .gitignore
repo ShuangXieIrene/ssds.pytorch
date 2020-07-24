@@ -7,3 +7,9 @@ run.sh
 __pycache__
 *.pyc
 log*
+ssds.egg-info
+doc/build
+doc/node_modules
+doc/package-lock.json
+dist
+build/lib/ssds

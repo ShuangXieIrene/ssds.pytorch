@@ -1,4 +1,9 @@
+tqdm
+numpy
+pyyaml
+pynvml
+cython
 opencv-python
 matplotlib
-tensorboardX
-torchvision
+tensorboard
+git+https://github.com/philferriere/cocoapi.git#subdirectory=PythonAPI
