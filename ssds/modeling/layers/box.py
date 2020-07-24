@@ -6,7 +6,10 @@ INF = 100000
 
 
 def configure_ratio_scale(num_featmaps, ratios, scales):
-    # for current version do not consider the enlarged 1:1 anchor box in the original ssd or tf version
+    r""" Get the apect ratio and scale for the default anchor boxes
+
+    From v.15, ssds.pytorch does not consider the enlarged 1:1 anchor box in the original ssd or tf version
+    """
     if len(scales) == num_featmaps:
         scales = scales
     # for the current version of generate anchor, this is not make sense
@@ -121,7 +124,7 @@ def snap_to_anchors_by_iou(
     is_centerness,
     device,
 ):
-    "Snap target boxes (x, y, w, h) to anchors"
+    "Snap target boxes (x, y, w, h) to anchors by the iou between target boxes and anchors"
 
     num_anchors = anchors.size()[0] if anchors is not None else 1
     width, height = (int(size[0] / stride), int(size[1] / stride))
@@ -234,7 +237,7 @@ def snap_to_anchors_by_scale(
     is_centerness,
     device,
 ):
-    "Snap target boxes (x, y, w, h) to anchors"
+    "Snap target boxes (x, y, w, h) to anchors by the scale of target boxes"
 
     num_anchors = anchors.size()[0] if anchors is not None else 1
     width, height = (int(size[0] / stride), int(size[1] / stride))
@@ -366,6 +369,7 @@ def extract_targets(
     center_sampling_radius=0,
     is_centerness=False,
 ):
+    "snap the targets to anchors"
     cls_target, box_target, depth = [], [], []
     for target in targets:
         target = target[target[:, -1] > -1]

@@ -57,6 +57,13 @@ def create_anchors(cfg, model, image_size, visualize=False):
 
 
 def create_decoder(cfg):
+    r""" Generate decoder based on the cfg.POST_PROCESS. 
+    
+    The generated decoder is the object of class Decoder, check more details by :class:`ssds.modeling.layers.decoder.Decoder`.
+    
+    Args:
+        cfg: defined cfg.POST_PROCESS
+    """
     return Decoder(
         cfg.SCORE_THRESHOLD,
         cfg.IOU_THRESHOLD,

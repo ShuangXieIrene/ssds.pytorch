@@ -14,7 +14,12 @@ import torch.utils.data as data
 from . import transforms as preprocess
 
 class DetectionDataset(data.Dataset):
-    '''The detection 2d dataset. Used to get the images
+    '''The base class for the detection 2d dataset.
+    
+    It contains the data pipeline which is defined by :meth:`_init_transform`.
+
+    DetectionDataset is the base class and does not contain the actual data, the derivative class 
+    need to fill the annotation to the self.db.
     '''
     def __init__(self, cfg, is_train, transform=None):
         # super(DetectionDataset, self).__init__()
@@ -71,20 +76,30 @@ class DetectionDataset(data.Dataset):
         return len(self.db)
 
     def __getitem__(self, index):
-        '''
+        r''' fetch the image and annotation from self.db[index]
+
+        The data in the self.db can be discribed as:
+
+        db[index] = {
+
+        'image': 'Absolute Path',
+
+        'boxes': np.ndarray,
+
+        'labels': np.adarray}
+
         Args:
-            index for db, 
-            db[index] = {
-                'image': 'Absolute Path',
-                'boxes': np.ndarray
-                'labels': np.adarray
-            }
+            index: index for db, 
+            
 
         Returns:
-            'image': torch(c,h,w),
-            'target': np.ndarray(n,5)
-                    0~4 is the bounding box in AbsoluteCoords with format x,y,w,h
-                    5 is the bounding box label
+            'image', torch(c,h,w),
+
+            'target', np.ndarray(n,5)
+
+            0~4 is the bounding box in AbsoluteCoords with format x,y,w,h
+            
+            5 is the bounding box label
         '''
         db_rec = copy.deepcopy(self.db[index])
         
@@ -111,6 +126,8 @@ class DetectionDataset(data.Dataset):
 
     def reorder_data(self, db, cfg_joints_name, ds_joints_name):
         ''' reorder the db based on the cfg_joints_name
+
+        :meta private:
         '''
         order = []
         for cfg_name in cfg_joints_name:
@@ -124,6 +141,9 @@ class DetectionDataset(data.Dataset):
         return db
 
     def saving_pickle(self, pickle_path):
+        '''
+        :meta private:
+        '''
         img_db = []
         for idx, db_rec in enumerate(self.db):
             sys.stdout.write('\rLoading Image: {}/{}'.format(idx, len(self.db)))
@@ -138,6 +158,9 @@ class DetectionDataset(data.Dataset):
             return pickle.dump(img_db, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def loading_pickle(self, pickle_path):
+        '''
+        :meta private:
+        '''
         sys.stdout.write('\rLoading Pickle from {}\n'.format(pickle_path))
         with open(pickle_path, 'rb') as handle:
             return pickle.load(handle)

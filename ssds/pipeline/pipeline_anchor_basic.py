@@ -25,6 +25,8 @@ def train_anchor_based_epoch(
     epoch,
     device,
 ):
+    r""" the pipeline for training
+    """
     model.train()
 
     title = "Train: "
@@ -143,6 +145,8 @@ def eval_anchor_based_epoch(
     epoch,
     device,
 ):
+    r""" the pipeline for evaluation
+    """
     model.eval()
     title = "Eval: "
     progress = tqdm(

@@ -12,7 +12,7 @@ ssds.modeling.layers.box
 ssds.modeling.layers.decoder
 -----------------------------------
 
-.. automodule:: ssds.modeling.layers.decoder
-   :members:
+.. autoclass:: ssds.modeling.layers.decoder.Decoder
+   :members: __call__
    :undoc-members:
    :show-inheritance:

@@ -1,18 +1,26 @@
 ssds.dataset
 ====================
 
-ssds.dataset.coco
-------------------------
+ssds.dataset.dataset\_factory
+------------------------------------
 
-.. automodule:: ssds.dataset.coco
+.. automodule:: ssds.dataset.dataset_factory
    :members:
    :undoc-members:
    :show-inheritance:
 
-ssds.dataset.dali\_coco
-------------------------------
+ssds.dataset.detection\_dataset
+--------------------------------------
 
-.. automodule:: ssds.dataset.dali_coco
+.. autoclass:: ssds.dataset.detection_dataset.DetectionDataset
+   :members: __getitem__
+   :undoc-members:
+   :show-inheritance:
+
+ssds.dataset.coco
+------------------------
+
+.. automodule:: ssds.dataset.coco
    :members:
    :undoc-members:
    :show-inheritance:
@@ -25,26 +33,18 @@ ssds.dataset.dali\_dataiterator
    :undoc-members:
    :show-inheritance:
 
+ssds.dataset.dali\_coco
+------------------------------
+
+.. automodule:: ssds.dataset.dali_coco
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ssds.dataset.dali\_tfrecord
 ----------------------------------
 
 .. automodule:: ssds.dataset.dali_tfrecord
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.dataset.dataset\_factory
-------------------------------------
-
-.. automodule:: ssds.dataset.dataset_factory
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-ssds.dataset.detection\_dataset
---------------------------------------
-
-.. automodule:: ssds.dataset.detection_dataset
    :members:
    :undoc-members:
    :show-inheritance:

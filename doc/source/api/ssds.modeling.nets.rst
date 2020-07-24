@@ -40,10 +40,7 @@ ssds.modeling.nets.effnet
 ssds.modeling.nets.inception\_v2
 ---------------------------------------
 
-.. automodule:: ssds.modeling.nets.inception_v2
-   :members: InceptionV2
-   :undoc-members:
-   :member-order: bysource
+.. autoclass:: ssds.modeling.nets.inception_v2.InceptionV2
 
 ssds.modeling.nets.mobilenet
 -----------------------------------

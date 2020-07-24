@@ -7,16 +7,15 @@ from pycocotools.coco import COCO
 from .detection_dataset import DetectionDataset
 
 class COCODataset(object):
-    """COCO Detection Dataset Object
+    r"""COCO Dataset, used to extract the data from annotation file only.
+    
+    For the dataset defined in the cfg.DATASET.DATASET, please refer to :class:`.COCODetection`.
 
-    input is image, target is annotation
+    Saved the image path and the relative annotation to the self.img_paths and self.anno
 
     Arguments:
-        root (string): filepath to VOCdevkit folder.
-        image_set (string): imageset to use (eg. 'train', 'val', 'test')
-        transform (callable, optional): transformation to perform on the input image
-        target_transform (callable, optional): transformation to perform on the target `annotation` (eg: take in caption string, return tensor of word indices)
-        dataset_name (string, optional): which dataset to load (default: 'VOC2007')
+        dataset_dir (str): the directory of coco dataset
+        image_sets (list): list folders that
     """
     def __init__(self, dataset_dir, image_sets):
         self.dataset_dir   = dataset_dir
@@ -132,6 +131,17 @@ class COCODataset(object):
         return res
 
 class COCODetection(COCODataset, DetectionDataset):
+    r"""COCO Object Detection Dataset
+
+    The derivative class for COCODataset and DetectionDataset.
+
+    load the image path and the relative annotation from :class:`.COCODataset` and save them to the annotation database.
+    Then fetch the data by the data pipeline in the :class:`ssds.dataset.detection_dataset.DetectionDataset`.
+
+    Arguments:
+        dataset_dir (str): the directory of coco dataset
+        image_sets (list): list folders that
+    """
     def __init__(self, cfg, dataset_dir, image_sets, training=False, transform=None): 
         DetectionDataset.__init__(self, cfg, training, transform)
         COCODataset.__init__(self, dataset_dir, image_sets)

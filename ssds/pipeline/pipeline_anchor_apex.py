@@ -14,7 +14,7 @@ ERASE_LINE = "\x1b[2K"
 
 
 class ModelWithLossBasic(torch.nn.Module):
-    """ Class use to help the gpu memory becomes more balance in ddp model
+    r""" Class use to help the gpu memory becomes more balance in ddp model
     """
 
     def __init__(
@@ -35,6 +35,9 @@ class ModelWithLossBasic(torch.nn.Module):
         self.center_radius = center_sampling_radius
 
     def forward(self, images, targets, anchors):
+        r""" 
+        :meta private:
+        """
         loc, conf = self.model(images)
 
         cls_losses, loc_losses, fg_targets = [], [], []
@@ -72,6 +75,8 @@ class ModelWithLossBasic(torch.nn.Module):
 def train_anchor_based_epoch(
     model, data_loader, optimizer, anchors, writer, epoch, device, local_rank
 ):
+    r""" the pipeline for training
+    """
     model.train()
     title = "Train: "
 

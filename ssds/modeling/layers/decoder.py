@@ -1,7 +1,17 @@
 import torch
 from .box import decode, nms
 
+
 class Decoder(object):
+    r"""
+    class Decoder contains the decoder func and nms func
+    
+    * decoder
+        decoder is used to decode the boxes from loc and conf feature map, check :meth:`ssds.modeling.layers.box.decode` for more details.
+    * nms
+        nms is used to filter the decoded boxes by its confidence and box location, check :meth:`ssds.modeling.layers.box.nms` for more details.
+    """
+
     def __init__(
         self, conf_threshold, nms_threshold, top_n, top_n_per_level, rescore, use_diou
     ):
@@ -13,11 +23,14 @@ class Decoder(object):
         self.use_diou = use_diou
 
     def __call__(self, loc, conf, anchors):
-        """
+        r"""
         Decode and filter boxes
+
         Returns:
             out_scores,  (batch, top_n)
+
             out_boxes,   (batch, top_n, 4) with ltrb format
+
             out_classes, (batch, top_n)
         """
         decoded = [

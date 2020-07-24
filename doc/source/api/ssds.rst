@@ -8,7 +8,6 @@ ssds.pytorch API
    ssds.dataset
    ssds.modeling
    ssds.pipeline
-   ssds.utils
 
 ssds.ssds
 ---------------------------

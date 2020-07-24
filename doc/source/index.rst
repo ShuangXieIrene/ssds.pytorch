@@ -6,6 +6,14 @@
 ssds.pytorch documentation
 ========================================
 
+.. toctree::
+   :maxdepth: 2
+
+   install.md
+   usage.md
+   config.md
+
+
 API
 ===
 .. toctree::
@@ -17,3 +25,4 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
+* :ref:`search`

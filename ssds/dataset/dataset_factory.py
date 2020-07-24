@@ -36,6 +36,20 @@ def detection_collate(batch):
 
 
 def load_data(cfg, phase):
+    r""" create the dataloader based on the config file.
+
+    * If the phase == "train",
+        it returns the dataloader in cfg.DATASET.TRAIN_SETS and fetch the randomly;
+    * If the phase == "test",
+        it returns the dataloader in cfg.DATASET.TEST_SETS and fetch the squentially;
+
+    Args:
+        cfg: the configs defined by cfg.DATASET
+        phase (str): "train" or "test"
+
+    Returns:
+        dataloader 
+    """
     training = phase == "train"
     image_sets = cfg.TRAIN_SETS if training else cfg.TEST_SETS
     batch_size = cfg.TRAIN_BATCH_SIZE if training else cfg.TEST_BATCH_SIZE
