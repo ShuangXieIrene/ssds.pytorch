@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="doc/source/_static/img/ssds.pytorch.png" width="400"/>
+</div>
+
 # ssds.pytorch
 Repository for Single Shot MultiBox Detector and its variants, implemented with pytorch, python3. This repo is easy to setup and has plenty of visualization methods. We hope this repo can help people have a better understanding for ssd-like model and help people train and deploy the ssds model easily.
 
