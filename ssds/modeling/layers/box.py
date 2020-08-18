@@ -437,7 +437,7 @@ def decode(
         box_head = all_box_head[batch, :, :, :].contiguous().view(-1, 4)
 
         # Keep scores over threshold
-        keep = (cls_head >= threshold).nonzero().view(-1)
+        keep = (cls_head >= threshold).nonzero(as_tuple=False).view(-1)
         if keep.nelement() == 0:
             continue
 
@@ -445,13 +445,13 @@ def decode(
         scores = torch.index_select(cls_head, 0, keep)
         scores, indices = torch.topk(scores, min(top_n, keep.size()[0]), dim=0)
         indices = torch.index_select(keep, 0, indices).view(-1)
-        classes = (indices / width / height) % num_classes
+        classes = (indices // width // height) % num_classes
         classes = classes.type(all_cls_head.type())
 
         # Infer kept bboxes
         x = indices % width
-        y = (indices / width) % height
-        a = indices / num_classes / height / width
+        y = (indices // width) % height
+        a = indices // num_classes // height // width
         box_head = box_head.view(num_anchors, 4, height, width)
         boxes = box_head[a, :, y, x]
 
@@ -493,7 +493,7 @@ def nms(all_scores, all_boxes, all_classes, nms=0.5, ndetections=100, using_diou
     # Per item in batch
     for batch in range(batch_size):
         # Discard null scores
-        keep = (all_scores[batch, :].view(-1) > 0).nonzero()
+        keep = (all_scores[batch, :].view(-1) > 0).nonzero(as_tuple=False)
         scores = all_scores[batch, keep].view(-1)
         boxes = all_boxes[batch, keep, :].view(-1, 4)
         classes = all_classes[batch, keep].view(-1)
@@ -510,7 +510,7 @@ def nms(all_scores, all_boxes, all_classes, nms=0.5, ndetections=100, using_diou
         keep = torch.ones(scores.nelement(), device=device, dtype=torch.uint8).view(-1)
 
         for i in range(ndetections):
-            if i >= keep.nonzero().nelement() or i >= scores.nelement():
+            if i >= keep.nonzero(as_tuple=False).nelement() or i >= scores.nelement():
                 i -= 1
                 break
 
@@ -533,11 +533,11 @@ def nms(all_scores, all_boxes, all_classes, nms=0.5, ndetections=100, using_diou
             criterion[i] = 1
 
             # Only keep relevant boxes
-            scores = scores[criterion.nonzero()].view(-1)
-            boxes = boxes[criterion.nonzero(), :].view(-1, 4)
-            classes = classes[criterion.nonzero()].view(-1)
-            areas = areas[criterion.nonzero()].view(-1)
-            keep[(~criterion).nonzero()] = 0
+            scores = scores[criterion.nonzero(as_tuple=False)].view(-1)
+            boxes = boxes[criterion.nonzero(as_tuple=False), :].view(-1, 4)
+            classes = classes[criterion.nonzero(as_tuple=False)].view(-1)
+            areas = areas[criterion.nonzero(as_tuple=False)].view(-1)
+            keep[(~criterion).nonzero(as_tuple=False)] = 0
 
         out_scores[batch, : i + 1] = scores[: i + 1]
         out_boxes[batch, : i + 1, :] = boxes[: i + 1, :]
